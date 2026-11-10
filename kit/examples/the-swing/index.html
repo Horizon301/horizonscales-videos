@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Swing — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #F6F0E6; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, b, L, CARDS, N, pass, arrive, T } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, rng, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, W0 = 1080, H0 = H / SC;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { paper: '#F6F0E6', ink: '#22102E', plum: 'rgb(28,2,40)', coral: '#E8574C', coralLite: '#F5A39A', cream: '#F6F0E6', mute: '#7B6A88' };
+
+// ── frame safety (Kai's rules, Nov 5): the swing is centred a little left of the middle so the logo never sits under the
+// like/comment/share buttons on the right; all words stay inside x 140–860 and y 290–1540.
+const CX = 435;                                   // centre of the swing and of the words
+const PIV = { x: CX, y: -810 }, LEN = 2050;       // the string hangs from above the frame
+const AMP = Math.asin(325 / LEN);                 // the bob travels 325 px each side (x 110 … 760), so its edge stops short of x 864
+const R = 90;                                     // bob radius
+const TEXT_CY = 860, PX0 = 94, LH = 1.14;
+
+// ── the swing: hang time at each side (so each card can be read), fast through the middle
+function theta(t) {
+  const p0 = pass(0);
+  let th;
+  if (t < p0.s) th = -AMP - (1 - spring(t + 0.12, { freq: 1.3, damp: 0.62 })) * 0.13;          // swings in from off-screen left
+  else if (t < T.settle) { const k = Math.min(N - 1, Math.floor((t - p0.s) / (p0.e - p0.s))), p = pass(k); th = (k % 2 ? -1 : 1) * AMP * (2 * ease.inOutQuart(seg(t, p.s, p.e)) - 1); }
+  else th = AMP * (1 - ease.inOutCubic(seg(t, T.settle, T.bloom)));                               // back to the middle
+  return th + (t < T.bloom ? 0.0035 * Math.sin(t * 2.3) : 0);                                    // it never hangs perfectly still
+}
+const bobAt = th => [PIV.x + LEN * Math.sin(th), PIV.y + LEN * Math.cos(th)];
+const stringX = (th, y) => PIV.x + (y - PIV.y) * Math.tan(th);
+
+// which card is on each side of the string
+function sides(t) {
+  const p0 = pass(0);
+  if (t < p0.s) return [0, 0];
+  if (t >= T.settle) return [N, -1];                                   // last half-swing clears the right side
+  const k = Math.min(N - 1, Math.floor((t - p0.s) / (p0.e - p0.s)));
+  return k % 2 ? [k, k + 1] : [k + 1, k];                              // [left, right]; the new card is behind the string
+}
+
+// ── layout: every line must fit inside the wedge the string actually sweeps, so the wipe is always complete
+let LAY = [];
+function layout() {
+  LAY = CARDS.map(c => {
+    let px = PX0;
+    for (let pass2 = 0; pass2 < 2; pass2++) {
+      const top = TEXT_CY - (c.lines.length * px * LH) / 2;
+      ctx.font = `400 ${px}px "Young Serif"`;
+      let ratio = 1;
+      c.lines.forEach((ln, j) => { const yTop = top + j * px * LH, hw = (yTop - PIV.y) * Math.tan(AMP) - 16; ratio = Math.min(ratio, (2 * hw) / ctx.measureText(ln).width); });
+      px *= ratio;
+    }
+    const top = TEXT_CY - (c.lines.length * px * LH) / 2;
+    return { px, top, base: c.lines.map((_, j) => top + j * px * LH + px * 0.86) };
+  });
+}
+
+function drawCard(i, t) {
+  if (i < 0) return;
+  const c = CARDS[i], g = LAY[i], a = arrive(i);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  // small label above the words
+  if (c.kind === 'leak' || c.kind === 'fix') {
+    const txt = c.kind === 'leak' ? `LEAK ${c.n} OF 3` : 'THE FIX', y = g.top - 50;
+    ctx.font = '700 36px "Poppins"'; ctx.letterSpacing = '8px';
+    const w = ctx.measureText(txt).width;
+    ctx.fillStyle = c.kind === 'leak' ? C.mute : C.coral; ctx.fillText(txt, CX + 3.5 + (c.kind === 'fix' ? 22 : 0), y);
+    ctx.letterSpacing = '0px';
+    if (c.kind === 'fix') {                                            // a small tick before "THE FIX"
+      const x = CX - w / 2 - 10, k = ease.outCubic(seg(t, a - 0.1, a + 0.2));
+      ctx.save(); ctx.strokeStyle = C.coral; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+      ctx.moveTo(x - 14, y - 12); ctx.lineTo(x - 14 + 10 * Math.min(1, k * 2), y - 12 + 10 * Math.min(1, k * 2));
+      if (k > 0.5) ctx.lineTo(x - 4 + 18 * (k * 2 - 1), y - 2 - 22 * (k * 2 - 1));
+      ctx.stroke(); ctx.restore();
+    }
+  }
+  ctx.font = `400 ${g.px}px "Young Serif"`;
+  c.lines.forEach((ln, j) => {
+    const marked = j === c.mark;
+    ctx.fillStyle = marked && c.kind !== 'fix' ? C.coral : C.ink;
+    ctx.fillText(ln, CX, g.base[j]);
+    if (marked && c.kind === 'fix') {                                  // coral underline draws itself when the card lands
+      const k = ease.outCubic(seg(t, a, a + 0.34));
+      if (k > 0) {
+        const w = ctx.measureText(ln).width, x0 = CX - w / 2 - 4, x1 = x0 + (w + 8) * k, y = g.base[j] + g.px * 0.17;
+        ctx.save(); ctx.strokeStyle = C.coral; ctx.lineWidth = g.px * 0.085; ctx.lineCap = 'round'; ctx.beginPath();
+        for (let x = x0; x <= x1; x += 10) { const yo = y + Math.sin(x * 0.05) * 2.2 - (x - CX) * 0.012; x === x0 ? ctx.moveTo(x, yo) : ctx.lineTo(x, yo); }
+        ctx.stroke(); ctx.restore();
+      }
+    }
+  });
+}
+
+// ── paper
+let GRAIN;
+function makeGrain() {
+  GRAIN = document.createElement('canvas'); GRAIN.width = 270; GRAIN.height = 480;
+  const g = GRAIN.getContext('2d'), r = rng(7), img = g.createImageData(270, 480);
+  for (let i = 0; i < img.data.length; i += 4) { const v = 90 + r() * 120; img.data[i] = v; img.data[i + 1] = v * 0.9; img.data[i + 2] = v * 0.8; img.data[i + 3] = 255; }
+  g.putImageData(img, 0, 0);
+}
+function paper(th) {
+  ctx.fillStyle = C.paper; ctx.fillRect(-40, -40, W0 + 80, H0 + 80);
+  const lx = CX + Math.sin(th) * 900, g = ctx.createRadialGradient(lx, 620, 0, lx, 620, 1000);
+  g.addColorStop(0, 'rgba(255,255,255,0.75)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(-40, -40, W0 + 80, H0 + 80);
+  const v = ctx.createRadialGradient(540, H0 / 2, 620, 540, H0 / 2, 1350); v.addColorStop(0, 'rgba(120,84,60,0)'); v.addColorStop(1, 'rgba(120,84,60,0.20)');
+  ctx.fillStyle = v; ctx.fillRect(-40, -40, W0 + 80, H0 + 80);
+  ctx.save(); ctx.globalAlpha = 0.07; ctx.globalCompositeOperation = 'multiply'; ctx.imageSmoothingEnabled = true; ctx.drawImage(GRAIN, -40, -40, W0 + 80, H0 + 80); ctx.restore();
+}
+
+function clipSide(th, right) {
+  const yA = -60, yB = H0 + 60, xA = stringX(th, yA), xB = stringX(th, yB);
+  ctx.beginPath();
+  if (right) { ctx.moveTo(xA, yA); ctx.lineTo(W0 + 60, yA); ctx.lineTo(W0 + 60, yB); ctx.lineTo(xB, yB); }
+  else { ctx.moveTo(-60, yA); ctx.lineTo(xA, yA); ctx.lineTo(xB, yB); ctx.lineTo(-60, yB); }
+  ctx.closePath(); ctx.clip();
+}
+
+// ── the bob: the Horizon Scales badge on a coral string
+let BADGE, WORD;
+function drawString(th, alpha = 1) {
+  const [bx, by] = bobAt(th);
+  ctx.save(); ctx.globalAlpha = alpha; ctx.strokeStyle = C.coral; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(PIV.x, PIV.y); ctx.lineTo(bx - Math.sin(th) * (R + 2), by - Math.cos(th) * (R + 2)); ctx.stroke(); ctx.restore();
+}
+function drawBob(th, t) {
+  const [bx, by] = bobAt(th);
+  // motion smear: a few faint discs behind the bob when it is moving fast
+  for (let g = 3; g >= 1; g--) { const tg = theta(t - g * 0.011), [gx, gy] = bobAt(tg); if (Math.abs(gx - bx) > 3) { ctx.save(); ctx.globalAlpha = 0.09; ctx.fillStyle = C.plum; ctx.beginPath(); ctx.arc(gx, gy, R, 0, 7); ctx.fill(); ctx.restore(); } }
+  ctx.save(); ctx.translate(bx, by); ctx.rotate(-th);
+  ctx.save(); ctx.shadowColor = 'rgba(34,16,46,0.30)'; ctx.shadowBlur = 38 * SC; ctx.shadowOffsetY = 22 * SC; ctx.fillStyle = C.plum; ctx.beginPath(); ctx.arc(0, 0, R, 0, 7); ctx.fill(); ctx.restore();
+  ctx.drawImage(BADGE, -R, -R, 2 * R, 2 * R);
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(0, 0, R + 1, 0, 7); ctx.stroke();
+  ctx.fillStyle = C.coral; ctx.beginPath(); ctx.arc(0, -R - 2, 9, 0, 7); ctx.fill();                   // the knot
+  ctx.restore();
+}
+
+// ── end card: the bob stops in the middle and its plum disc blooms into the usual plum end card
+function endCard(t) {
+  const d = t - T.bloom;
+  const rad = lerp(R, 2600, ease.inOutCubic(seg(d, 0, 0.9)));   // slow enough that the paper is still visible while the logo grows
+  const ks = clamp(spring(d, { freq: 2.1, damp: 0.74 }), 0, 1.12);
+  const [sx, sy] = bobAt(0), bx = lerp(sx, 540, ks), by = lerp(sy, 530, ks), sc = lerp(1, 225 / R, ks);
+  ctx.fillStyle = C.plum; ctx.beginPath(); ctx.arc(bx, by, rad, 0, 7); ctx.fill();
+  if (d < 0.2) { ctx.save(); ctx.globalAlpha = 1 - seg(d, 0, 0.2); ctx.strokeStyle = C.coral; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(PIV.x, PIV.y); ctx.lineTo(bx, by - R * sc); ctx.stroke(); ctx.restore(); }
+  ctx.drawImage(BADGE, bx - R * sc, by - R * sc, 2 * R * sc, 2 * R * sc);
+  const ring = 1 - seg(d, 0, 0.3); if (ring > 0) { ctx.save(); ctx.globalAlpha = ring; ctx.strokeStyle = C.coral; ctx.lineWidth = 6; ctx.beginPath(); ctx.arc(bx, by, R * sc + 1, 0, 7); ctx.stroke(); ctx.restore(); }
+  const rise = (t0, fn) => { const k = clamp(spring(t - t0, { freq: 2.6, damp: 0.8 })); if (k <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, k * 1.4); ctx.translate(0, (1 - k) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.word - 0.14, () => { const w = 350, h = w * WORD.height / WORD.width; ctx.drawImage(WORD, 540 - w / 2, 676, w, h); });
+  rise(T.tag1, () => { ctx.font = '400 60px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 905); });
+  rise(T.tag2, () => { ctx.font = '400 60px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 985); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 42px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1172); });
+}
+
+// punch-in: a small zoom kick each time a card lands, plus a slow creep, so the frame never sits still
+function zoom(t) {
+  let z = 1 + 0.02 * (t / DUR);
+  for (let i = 1; i <= N; i++) { const d = t - arrive(i); if (d >= 0 && d < 1) z += 0.02 * Math.exp(-d * 5); }
+  if (t >= T.bloom) z += 0.03 * Math.exp(-(t - T.bloom) * 4) + 0.012 * (t - T.bloom);
+  return z;
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 1.25;
+  ctx.save(); ctx.scale(SC, SC);
+  const z = zoom(t); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const th = theta(t), [left, right] = sides(t);
+  paper(th);
+  ctx.save(); clipSide(th, false); drawCard(left, t); ctx.restore();
+  ctx.save(); clipSide(th, true); drawCard(right, t); ctx.restore();
+  if (t < T.bloom) { drawString(th); drawBob(th, t); } else endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 92px "Young Serif"', '600 32px "Poppins"', '700 32px "Poppins"', '800 42px "Nunito"']);
+BADGE = await loadImage('assets/badge.png'); WORD = await loadImage('assets/wordmark.png');
+makeGrain(); layout();
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>

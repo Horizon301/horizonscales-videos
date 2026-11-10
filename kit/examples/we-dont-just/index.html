@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>We Don't Just — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-800.woff2) format("woff2"); font-weight: 800; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #1C0229; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, b, WORDS, END, HITS, ET, HOOK } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, hash, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, W0 = 1080, H0 = H / SC;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: '#1C0229', plum2: '#3A1550', ink: '#22102E', cream: '#F6F0E6', coral: '#F0645A', coralLite: '#F5A39A' };
+const FONT = px => `800 ${px}px "Poppins", Arial, sans-serif`;
+
+// background: deep plum with a slow light sweep, or warm cream on the flash beats
+function background(t, flash) {
+  const base = flash ? C.cream : C.plum;
+  ctx.fillStyle = base; ctx.fillRect(0, 0, W0, H0);
+  const x = 540 + Math.sin(t * 0.7) * 300, y = 700 + Math.cos(t * 0.5) * 260;
+  const g = ctx.createRadialGradient(x, y, 0, x, y, 1100);
+  g.addColorStop(0, flash ? 'rgba(255,255,255,0.55)' : 'rgba(90,40,120,0.55)'); g.addColorStop(1, flash ? 'rgba(230,220,205,0)' : 'rgba(10,0,20,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W0, H0);
+  const v = ctx.createRadialGradient(540, H0 / 2, 500, 540, H0 / 2, 1300); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, flash ? 'rgba(80,60,40,0.18)' : 'rgba(0,0,0,0.45)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W0, H0);
+}
+
+// one word block: letters rise from a mask, the whole block settles with a small overshoot, then leaves upward
+function wordBlock(t, t0, t1, text, style) {
+  const lines = text.split('\n');
+  const flash = style.startsWith('flash');
+  const fg = flash ? C.ink : C.cream, ac = style === 'accent' || style === 'flashAccent' ? C.coral : fg;
+  const big = style === 'flashAccent' ? 250 : style === 'base' ? 210 : 170;
+  const sizes = style === 'stack' ? [150, 210] : lines.length > 1 ? (style === 'flash' ? [150, 190] : [150, 175]) : [big];
+  const colors = style === 'stack' ? [fg, fg] : lines.length > 1 ? (style === 'flash' ? [fg, C.coral] : [fg, ac]) : [ac];
+  const outK = ease.inCubic(seg(t, t1 - 0.12, t1));
+  const total = sizes.reduce((a, s) => a + s * 0.92, 0), top = H0 * 0.47 - total / 2;
+  let y = top;
+  lines.forEach((ln, li) => {
+    const px = sizes[li]; ctx.font = FONT(px);
+    let w = ctx.measureText(ln).width; const fit = Math.min(1, 940 / w); const fpx = px * fit; ctx.font = FONT(fpx); w = ctx.measureText(ln).width;
+    y += fpx * 0.86;
+    const lt0 = t0 + li * 0.09;
+    // letters
+    let x = 540 - w / 2;
+    [...ln].forEach((ch, ci) => {
+      const cw = ctx.measureText(ch).width;
+      const k = clamp(spring(t - (lt0 + ci * 0.018), { freq: 4.2, damp: 0.62 }));
+      ctx.save();
+      ctx.beginPath(); ctx.rect(0, y - fpx * 1.05, W0, fpx * 1.32); ctx.clip();          // the mask the letters rise out of
+      const dy = (1 - k) * fpx * 0.95 - outK * fpx * 1.1;
+      ctx.fillStyle = colors[li]; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      ctx.fillText(ch, x, y + dy);
+      ctx.restore(); x += cw;
+    });
+    y += fpx * 0.06;
+  });
+}
+
+// beat pulse: tiny scale punch on every hit
+function punch(t) { let p = 0; WORDS.forEach(([n]) => { const d = t - b(n); if (d >= 0 && d < 0.25) p = Math.max(p, Math.exp(-d * 14)); }); return 1 + p * 0.035 + hitPulse(t) * 0.6; }
+// small punch on each of the song's fast hits after the drop (strength-weighted, decays quickly so the faster hits read as faster)
+function hitPulse(t) { let p = 0; HITS.forEach(([h, s]) => { const d = t - h; if (d >= 0 && d < 0.2) p = Math.max(p, s * Math.exp(-d * 22)); }); return p * 0.022; }
+
+// "booked." gets its own entrance: it slams down from big, the screen shakes, a coral shockwave rings out, and a white flash pops on the hit
+function bookedSlam(t, t0, t1, text) {
+  const d = t - t0, outK = ease.inCubic(seg(t, t1 - 0.12, t1));
+  const k = clamp(spring(d, { freq: 5.5, damp: 0.5 }), 0, 1.2);
+  const sc = lerp(2.6, 1, Math.min(1, k)) + (k > 1 ? (k - 1) * 0.5 : 0);
+  const shake = Math.exp(-d * 9) * 26, sx = Math.sin(d * 91) * shake, sy = Math.cos(d * 73) * shake;
+  // shockwave rings
+  [0, 0.08].forEach((o, j) => { const r = seg(d, o, o + 0.55); if (r > 0 && r < 1) { ctx.save(); ctx.strokeStyle = C.coral; ctx.globalAlpha = (1 - r) * (j ? 0.35 : 0.6); ctx.lineWidth = 34 * (1 - r) + 2; ctx.beginPath(); ctx.arc(540, H0 * 0.47, 120 + ease.outCubic(r) * 820, 0, Math.PI * 2); ctx.stroke(); ctx.restore(); } });
+  ctx.save(); ctx.translate(540 + sx, H0 * 0.47 + sy); ctx.scale(sc, sc); ctx.translate(0, -outK * 260);
+  ctx.font = FONT(250); const fp = 250 * Math.min(1, 860 / ctx.measureText(text).width); ctx.font = FONT(fp); ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.globalAlpha = clamp(d / 0.04) * (1 - outK);
+  ctx.fillStyle = 'rgba(34,16,46,0.18)'; ctx.fillText(text, 10, 16);          // soft drop shadow gives the word weight
+  ctx.fillStyle = C.coral; ctx.fillText(text, 0, 0);
+  ctx.restore();
+  const fl = Math.exp(-d * 18) * 0.85; if (fl > 0.01) { ctx.fillStyle = `rgba(255,255,255,${fl})`; ctx.fillRect(0, 0, W0, H0); }   // white flash on the hit
+}
+
+// the hook (Contrarian pattern): "You don't need a website." is on screen from frame 0, a coral marker crosses out "a website.",
+// then "You need booked jobs." slams in. It plants "booked", which pays off at the drop.
+function hookScene(t) {
+  background(t, false);
+  const out = ease.inCubic(seg(t, HOOK.out, b(0)));
+  const os = openShake(t), z = 1 + os * 0.05 + out * 0.25;
+  ctx.save(); ctx.translate(540 + Math.sin(t * 97) * os * 14, H0 * 0.47); ctx.scale(z, z); ctx.translate(-540, -H0 * 0.47); ctx.globalAlpha = 1 - out;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  const fit = (s, px, max) => { ctx.font = FONT(px); const f = px * Math.min(1, max / ctx.measureText(s).width); ctx.font = FONT(f); return f; };
+  // block 1
+  const y1 = H0 * 0.47 - 250, dead = seg(t, HOOK.strike, HOOK.strike + 0.05);
+  fit("You don’t need", 110, 900); ctx.fillStyle = dead > 0 ? 'rgba(246,240,230,0.55)' : C.cream; ctx.fillText("You don’t need", 540, y1);
+  fit('a website.', 170, 920); ctx.fillText('a website.', 540, y1 + 160);
+  const w = ctx.measureText('a website.').width, k = ease.outCubic(seg(t, HOOK.strike, HOOK.strike + 0.13));
+  if (k > 0) {
+    const x0 = 540 - w / 2 - 30, x1 = x0 + (w + 60) * k, yy = y1 + 160 - 58;
+    ctx.save(); ctx.strokeStyle = C.coral; ctx.lineWidth = 30; ctx.lineCap = 'round'; ctx.beginPath();
+    for (let x = x0; x <= x1; x += 12) { const yo = yy + (x - 540) * -0.05 + Math.sin(x * 0.045) * 4; x === x0 ? ctx.moveTo(x, yo) : ctx.lineTo(x, yo); }
+    ctx.stroke(); ctx.restore();
+  }
+  // block 2 slams in
+  const d = t - HOOK.line2;
+  if (d >= 0) {
+    const kk = clamp(spring(d, { freq: 5.5, damp: 0.55 }), 0, 1.2), sc = lerp(1.8, 1, Math.min(1, kk)) + (kk > 1 ? (kk - 1) * 0.4 : 0);
+    const y2 = H0 * 0.47 + 150;
+    ctx.save(); ctx.globalAlpha = (1 - out) * clamp(d / 0.04); ctx.translate(540, y2); ctx.scale(sc, sc); ctx.translate(-540, -y2);
+    fit('You need', 110, 900); ctx.fillStyle = C.cream; ctx.fillText('You need', 540, y2);
+    fit('booked jobs.', 170, 940); ctx.fillStyle = C.coral; ctx.fillText('booked jobs.', 540, y2 + 165);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+
+let LOGO;
+function endCard(t) {
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, W0, H0);
+  const hp = hitPulse(t);
+  const g = ctx.createRadialGradient(540, H0 / 2, 0, 540, H0 / 2, 1100); g.addColorStop(0, `rgba(90,40,120,${0.25 + hp * 14})`); g.addColorStop(1, 'rgba(10,0,20,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W0, H0);                                                                 // background breathes on each hit (no glow behind the logo)
+  const z = 1 + 0.02 * (t - END) + hp; ctx.translate(540, H0 / 2); ctx.scale(z, z); ctx.translate(-540, -H0 / 2);   // slow push-in + a punch on every hit
+  const k = clamp(spring(t - END + 0.15, { freq: 2.6, damp: 0.8 }));
+  if (LOGO) { const lw = 780, lh = lw * LOGO.height / LOGO.width; ctx.save(); ctx.globalAlpha = k; ctx.globalCompositeOperation = 'lighten'; ctx.translate(0, (1 - k) * 40); ctx.drawImage(LOGO, 540 - lw / 2, 600, lw, lh); ctx.restore(); }
+  [['You run the business.', ET.tag1, C.cream], ['We help it scale.', ET.tag2, C.coralLite]].forEach(([s, t0, col], i) => {
+    const kk = clamp(spring(t - t0, { freq: 3.4, damp: 0.75 })); ctx.save(); ctx.globalAlpha = kk; ctx.translate(0, (1 - kk) * 36);
+    ctx.font = '400 76px "Young Serif", Georgia, serif'; ctx.fillStyle = col; ctx.textAlign = 'center'; ctx.fillText(s, 540, 1040 + i * 100); ctx.restore();
+  });
+  [['700 38px "Poppins"', C.coralLite, 'Websites · Ads · AI receptionists', 1300, ET.serv], ['800 44px "Nunito"', C.cream, 'horizonscales.com', 1380, ET.url]].forEach(([f, col, s, y, t0]) => {
+    const k3 = clamp(spring(t - t0, { freq: 3.4, damp: 0.8 })); ctx.save(); ctx.globalAlpha = k3; ctx.translate(0, (1 - k3) * 24); ctx.textAlign = 'center';
+    ctx.font = f; ctx.fillStyle = col; ctx.fillText(s, 540, y); ctx.restore();
+  });
+}
+
+// opening jolt: horizontal slices of the frame jump sideways with a colour split, decaying fast (frame 0 stays readable)
+const CV = document.getElementById('c');
+function glitch(amount, seed) {
+  if (amount < 0.02) return;
+  ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const Wp = CV.width, Hp = CV.height, n = 9;
+  for (let s = 0; s < n; s++) {
+    const r = hash(seed * 31 + s), y = Math.floor(hash(seed * 17 + s * 7) * Hp), hgt = Math.floor((0.02 + r * 0.07) * Hp);
+    const dx = (hash(seed * 13 + s * 3) - 0.5) * 2 * amount * Wp * 0.09;
+    ctx.drawImage(CV, 0, y, Wp, hgt, dx, y, Wp, hgt);
+  }
+  ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = Math.min(0.5, amount * 0.6);
+  ctx.drawImage(CV, amount * Wp * 0.012, 0); ctx.restore();
+}
+function openShake(t) { const hits = [[HOOK.strike, 0.35], [HOOK.line2, 0.55], [b(0), 1], [b(1), 0.6], [b(2), 0.45]]; let s = 0; hits.forEach(([h, k]) => { const d = t - h; if (d >= 0) s = Math.max(s, k * Math.exp(-d * 10)); }); return s; }
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = HOOK.line2 + 0.6;   // cover = the hook with both lines up
+  ctx.save(); ctx.scale(SC, SC);
+  if (t >= END) { endCard(t); ctx.restore(); return; }
+  if (t < b(0)) { hookScene(t); ctx.restore(); if (MODE !== 'thumb') glitch(openShake(t) * 0.8, Math.floor(t * 30)); return; }
+  let i = WORDS.length - 1; while (i > 0 && t < b(WORDS[i][0])) i--;
+  const [n, text, style] = WORDS[i], t0 = b(n), t1 = i < WORDS.length - 1 ? b(WORDS[i + 1][0]) : END;
+  background(t, style.startsWith('flash'));
+  const p = punch(t); ctx.translate(540, H0 / 2); ctx.scale(p, p); ctx.translate(-540, -H0 / 2);
+  const os = MODE === 'thumb' ? 0 : openShake(t);
+  if (os > 0.01) { const z = 1 + os * 0.12; ctx.translate(540 + Math.sin(t * 97) * os * 22, H0 / 2 + Math.cos(t * 83) * os * 16); ctx.scale(z, z); ctx.translate(-540, -H0 / 2); }
+  if (style === 'flashAccent' && MODE !== 'thumb') bookedSlam(t, t0, t1, text);
+  else wordBlock(t, MODE === 'thumb' || i === 0 ? t0 - 0.45 : t0, t1, text, style);   // the first words are already up on frame 0
+  ctx.restore();
+  if (MODE !== 'thumb' && t < b(3)) glitch(openShake(t) * 1.1, Math.floor(t * 30));
+};
+await loadFonts([FONT(200), '700 38px "Poppins"', '400 76px "Young Serif"', '800 44px "Nunito"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>

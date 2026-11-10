@@ -1,0 +1,4 @@
+node_modules/
+work/*/audio/
+work/*/out/
+work/*/qa/

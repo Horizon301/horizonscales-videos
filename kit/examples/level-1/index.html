@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Level 1 — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Press Start 2P"; src: url(fonts/PressStart2P.woff2) format("woff2"); }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #1C0228; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, b, L, GY, PITS, HOUSE, STAGES, FALL, BRIDGE, RUN, T, CAMS, runX, HOOK } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, hash, rng, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, W0 = 1080, H0 = H / SC;
+const MODE = new URLSearchParams(location.search).get('dir');
+const PX = 8, GW = 135, GH = 240;                       // game pixel size and game screen size
+const LG = document.createElement('canvas'); LG.width = GW; LG.height = GH; const g = LG.getContext('2d');
+const C = { plum: 'rgb(28,2,40)', ink: '#14021E', cream: '#F6F0E6', coral: '#F0645A', coralLite: '#F5A39A', sun: '#FFD27A', mint: '#7BE495', pit: '#07000C' };
+const PIXEL = px => `${px}px "Press Start 2P"`;
+const px = (x, y, w, h, col) => { g.fillStyle = col; g.fillRect(Math.round(x), Math.round(y), w, h); };
+
+// ── camera: sits on each pit while its leak is named, pans with each new customer
+function cam(t) {
+  let c = CAMS[0];
+  for (let k = 1; k < 4; k++) c = lerp(c, CAMS[k], ease.inOutCubic(seg(t, RUN[k][0] + 0.25, RUN[k][1] - 0.15)));
+  return c;
+}
+
+// ── customers
+const SHIRT = ['#4FD1E8', '#FFD27A', '#7BE495', '#F5A39A'], SKIN = ['#F6C9A0', '#C68E5C', '#8D5B36', '#EBB98B'], HAIR = ['#2A1A12', '#14021E', '#14021E', '#6B3A1E'];
+function customer(k, t) {                                // → { x, y (feet), walking } or null
+  const [t0, t1] = RUN[k];
+  if (t < t0) return null;
+  const [xs, xe] = runX(k);
+  if (t <= t1) return { x: lerp(xs, xe, k === 0 ? seg(t, t0, t1) : ease.inOutSine(seg(t, t0, t1))), y: GY, walking: true };
+  const d = t - t1;
+  if (k < 3) { const y = GY + 0.5 * 520 * d * d; return y > GH + 20 ? null : { x: xe + d * 10, y, walking: false, falling: true }; }
+  const hop = d < 1.2 ? Math.abs(Math.sin(d / 0.4 * Math.PI)) * 12 : 0;                    // three happy hops at the door
+  return { x: xe, y: GY - hop, walking: false };
+}
+function drawCustomer(k, c, t) {                        // sprite is 8 × 14, drawn at double size so it reads on a phone
+  const X = Math.round(c.x - 8), Y = Math.round(c.y - 28), step = c.walking ? Math.floor(c.x / 7) % 2 : 0;
+  const p = (ax, ay, w, h2, col) => px(X + ax * 2, Y + ay * 2, w * 2, h2 * 2, col);
+  p(2, 0, 4, 2, HAIR[k]); p(2, 2, 4, 3, SKIN[k]); p(5, 3, 1, 1, C.ink);                                    // hair, face, eye
+  p(1, 5, 6, 5, SHIRT[k]);                                                                                  // shirt
+  if (c.falling) { p(0, 2, 1, 4, SKIN[k]); p(7, 2, 1, 4, SKIN[k]); }                                        // arms up when falling
+  else { p(step ? 0 : 1, 6, 1, 3, SKIN[k]); p(step ? 7 : 6, 6, 1, 3, SKIN[k]); }
+  if (step) { p(1, 10, 2, 4, '#2E0B4A'); p(5, 10, 2, 4, '#2E0B4A'); } else { p(2, 10, 2, 4, '#2E0B4A'); p(4, 10, 2, 4, '#2E0B4A'); }
+}
+
+// ── the pixel world (drawn small, then scaled up ×8 with hard edges)
+const SKY = [[0, '#1C0228'], [44, '#2E0B4A'], [74, '#4B1570'], [98, '#7A2488'], [118, '#B43A7E'], [132, '#E0556B'], [143, '#F47C5C']];
+const STARS = (() => { const r = rng(11); return Array.from({ length: 46 }, () => [Math.floor(r() * GW), Math.floor(r() * 92), r()]); })();
+const hFar = x => 26 + 10 * Math.sin(x * 0.045) + 6 * Math.sin(x * 0.11 + 1) + 4 * Math.sin(x * 0.23 + 2);
+const hNear = x => 11 + 6 * Math.sin(x * 0.07 + 3) + 4 * Math.sin(x * 0.19);
+function palm(sx, h) {
+  for (let i = 0; i < h; i++) px(sx + Math.round(Math.sin(i / h * 1.2) * 3), GY - i, 2, 1, C.ink);
+  const tx = sx + Math.round(Math.sin(1.2) * 3), ty = GY - h;
+  for (const d of [-1, 1]) for (let j = 1; j <= 8; j++) {
+    px(tx + d * j, ty - Math.round(3 * Math.sin(j / 8 * Math.PI)) + Math.round(j * j / 14), 2, 2, C.ink);
+    px(tx + d * j, ty + Math.round(j * j / 9) - 1, 2, 2, C.ink);
+    if (j <= 6) px(tx + d * j, ty + Math.round(j * j / 4.5), 2, 2, C.ink);
+  }
+}
+function world(t, cx) {
+  SKY.forEach(([y, col], i) => px(0, y, GW, (SKY[i + 1] ? SKY[i + 1][0] : GY) - y, col));
+  STARS.forEach(([x, y, r]) => { if (Math.sin(t * 3 + r * 40) > -0.4) px(x, y, 1, 1, r > 0.6 ? C.cream : '#B43A7E'); });
+  // the sun: striped, like the logo
+  const sx = 84 - cx * 0.03, R = 40;
+  for (let dy = 1; dy <= R; dy++) {
+    const y = GY - dy, hw = Math.round(Math.sqrt(R * R - dy * dy)), stripe = dy < 26 && (dy % 6 === 0 || (dy < 14 && dy % 6 === 1));
+    if (!stripe) px(sx - hw, y, hw * 2, 1, dy > 28 ? C.sun : dy > 16 ? '#FFB36B' : dy > 8 ? '#F98A5E' : C.coral);
+  }
+  for (let x = 0; x < GW; x++) { const h = Math.round(hFar(x + cx * 0.15)); px(x, GY - h, 1, h, '#3A0F5C'); }
+  for (let x = 0; x < GW; x++) { const h = Math.round(hNear(x + cx * 0.3)); px(x, GY - h, 1, h, '#240840'); }
+  [[40, 30], [150, 34], [250, 27], [345, 32], [470, 30], [560, 34]].forEach(([wx, h]) => { const s = Math.round(wx - cx * 0.6); if (s > -12 && s < GW + 12) palm(s, h); });
+  // ground
+  px(0, GY, GW, GH - GY, C.ink); px(0, GY, GW, 2, C.coralLite); px(0, GY + 2, GW, 1, '#B43A7E');
+  [14, 30, 52, 82].forEach(dy => px(0, GY + dy, GW, 1, '#2A0A3E'));
+  for (let wx = Math.floor(cx / 8) * 8; wx < cx + GW + 8; wx += 8) px(wx - cx, GY + 6, 2, 2, '#3A0F5C');
+  // the shop: "your business"
+  const hx = HOUSE.x - cx, open = t >= T.booked;
+  if (hx < GW + 10) {
+    px(hx, GY - 40, 56, 40, C.cream); px(hx, GY - 40, 56, 2, '#D9CDBA');
+    for (let i = 0; i < 10; i++) px(hx - 5 + i, GY - 41 - i, 66 - i * 2, 1, C.coral);                      // roof
+    px(hx + 22, GY - 30, 12, 30, open ? C.sun : '#2E0B4A'); px(hx + 31, GY - 15, 2, 3, open ? C.ink : C.sun);   // door
+    [5, 40].forEach(wx => { px(hx + wx, GY - 30, 11, 11, C.sun); px(hx + wx + 5, GY - 30, 1, 11, C.cream); px(hx + wx, GY - 25, 11, 1, C.cream); });   // windows
+    px(hx + 62, GY - 62, 1, 62, C.cream);                                                                   // flag pole
+    const fy = lerp(GY - 16, GY - 62, ease.outCubic(seg(t, T.booked + 0.1, T.booked + 0.8)));
+    if (open) { px(hx + 63, fy, 12, 8, C.coral); px(hx + 65, fy + 3, 8, 2, C.sun); }
+  }
+  // pits and bridges
+  PITS.forEach((p, k) => {
+    const x = p.x - cx; if (x > GW + 4 || x + p.w < -4) return;
+    px(x, GY, p.w, GH - GY, C.pit); px(x, GY, 1, GH - GY, '#2A0A3E'); px(x + p.w - 1, GY, 1, GH - GY, '#2A0A3E');
+    const d = t - BRIDGE[k];
+    if (d >= -0.3) {                                                         // the bridge drops from the sky and lands on the beat
+      const fall = d < 0 ? 1 - Math.pow((d + 0.3) / 0.3, 2) : 0, bounce = d >= 0 && d < 0.22 ? Math.sin(d / 0.22 * Math.PI) * 3 : 0;
+      const y = GY - fall * 170 - bounce;
+      px(x - 2, y, p.w + 4, 5, C.cream); px(x - 2, y + 5, p.w + 4, 1, '#D9CDBA');
+      for (let i = 0; i < 5; i++) px(x + i * 4, y + 2, 2, 1, C.coral);
+      if (d >= 0) { px(x + 3, GY + 6, 1, 8, '#D9CDBA'); px(x + p.w - 4, GY + 6, 1, 8, '#D9CDBA'); px(x + p.w / 2, GY - 36, 1, 36, C.cream); }   // legs + sign pole
+      if (d >= 0 && d < 0.35) for (let i = 0; i < 6; i++) px(x - 4 + i * 5 + (i % 2 ? d * 20 : -d * 20), GY - 2 - d * 14 * (i % 3), 2, 2, C.coralLite);   // dust
+    }
+  });
+  // the hook: on frame 0 a customer hangs over the first gap for a beat (cartoon-style), then drops
+  if (t < b(0)) { const d = Math.max(0, t - 0.3), y = GY + 8 + 0.5 * 420 * d * d; if (y < GH + 30) drawCustomer(3, { x: PITS[0].x + 11 - cx, y, falling: true }, t); }
+  // customers
+  for (let k = 0; k < 4; k++) { const c = customer(k, t); if (c && c.x - cx > -8 && c.x - cx < GW + 8) drawCustomer(k, { ...c, x: c.x - cx }, t); }
+  // "!" over a customer who is about to step off the edge
+  for (let k = 0; k < 3; k++) { const d = FALL[k] - t; if (d > 0 && d < 0.45) { const c = customer(k, t); px(c.x - cx - 1, GY - 44, 3, 8, C.sun); px(c.x - cx - 1, GY - 34, 3, 3, C.sun); } }
+  // pixel confetti when the job is booked
+  const dc = t - T.booked;
+  if (dc > 0 && dc < 2.6) { const r = rng(5); for (let i = 0; i < 46; i++) { const a = r() * Math.PI, v = 40 + r() * 70, col = [C.sun, C.coral, '#4FD1E8', C.mint, C.cream][i % 5];
+    const x = HOUSE.door - cx + Math.cos(a) * v * dc * (r() > 0.5 ? 1 : -1) * 0.7, y = GY - 22 - Math.sin(a) * v * dc + 0.5 * 90 * dc * dc; if (y < GY) px(x, y, 2, 2, col); } }
+}
+
+// ── text helpers (every word gets a dark outline: the background is busy)
+function outlined(txt, x, y, font, fill, lw = 10, align = 'center') {
+  ctx.font = font; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.lineJoin = 'round';
+  ctx.strokeStyle = C.ink; ctx.lineWidth = lw; ctx.strokeText(txt, x, y); ctx.fillStyle = fill; ctx.fillText(txt, x, y);
+}
+function sign(txt, wx, cx, k, t, wy = GY - 36) {                                   // a sign board above a bridge or the shop
+  const kk = clamp(spring(t - k, { freq: 3.2, damp: 0.6 })); if (kk <= 0) return;
+  ctx.font = PIXEL(22); const w = ctx.measureText(txt).width + 30, sx = (wx - cx) * PX, sy = wy * PX;
+  ctx.save(); ctx.translate(sx, sy); ctx.scale(kk, kk);
+  ctx.fillStyle = C.ink; ctx.fillRect(-w / 2, -48, w, 48); ctx.strokeStyle = C.cream; ctx.lineWidth = 4; ctx.strokeRect(-w / 2 + 2, -46, w - 4, 44);
+  ctx.fillStyle = C.cream; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillText(txt, 1, -13);
+  ctx.restore();
+}
+
+// ── top title, HUD and captions (screen space, inside the safe zone)
+function titleState(t) {
+  if (t >= T.booked) return { lines: ['JOB BOOKED!'], col: C.sun, t0: T.booked, size: 60 };
+  for (let k = 2; k >= 0; k--) {
+    if (t >= BRIDGE[k]) return { lines: [`LEAK ${k + 1}`, 'FIXED'], col: C.mint, t0: BRIDGE[k], size: 48 };
+    if (t >= FALL[k] + 0.3) return { lines: [`CUSTOMER ${k + 1}`, 'LOST'], col: C.coral, t0: FALL[k] + 0.3, size: 48 };
+  }
+  if (t >= b(0)) return { lines: ['CAN A CUSTOMER', 'REACH YOU?'], col: C.cream, t0: b(0), size: 44 };
+  if (t >= HOOK.again) return { lines: ['TRY AGAIN?'], col: C.cream, t0: HOOK.again, size: 60 };
+  return { lines: ['GAME OVER'], col: C.coral, t0: -1, size: 76 };
+}
+function captionState(t) {
+  if (t >= T.booked) return { lines: ['Found. Called. Booked.'], col: C.coralLite, t0: T.booked };
+  for (let k = 2; k >= 0; k--) {
+    if (t >= BRIDGE[k]) return { lines: STAGES[k].fix, col: C.cream, t0: BRIDGE[k] };
+    if (t >= FALL[k] + 0.3) return { lines: STAGES[k].leak, col: C.cream, t0: FALL[k] + 0.3 };
+  }
+  if (t < HOOK.again) return { lines: ['You just lost', 'a customer.'], col: C.cream, t0: -1 };
+  if (t < b(0)) return { lines: ['Let’s see what', 'went wrong.'], col: C.sun, t0: HOOK.again };
+  return null;
+}
+function overlay(t) {
+  const ts = titleState(t), kt = clamp(spring(t - ts.t0, { freq: 3, damp: 0.62 }), 0, 1.25);
+  ctx.save(); ctx.translate(540, 360); ctx.scale(lerp(0.6, 1, kt), lerp(0.6, 1, kt)); ctx.globalAlpha = Math.min(1, kt * 2);
+  ts.lines.forEach((ln, i) => outlined(ln, 0, (i - (ts.lines.length - 1) / 2) * ts.size * 1.45 + ts.size / 2, PIXEL(ts.size), ts.col, 14));
+  ctx.restore();
+  // HUD
+  const lost = t < b(0) ? 1 : FALL.filter(f => t >= f + 0.3).length, booked = t >= T.booked ? 1 : 0;
+  const bump = t0 => 1 + 0.35 * Math.exp(-Math.max(0, t - t0) * 9) * (t >= t0 ? 1 : 0);
+  const lb = Math.max(...FALL.map(f => bump(f + 0.3)));
+  ctx.save(); ctx.translate(150, 520); ctx.scale(lb, lb); outlined(`LOST ${lost}`, 0, 0, PIXEL(30), lost ? C.coral : C.cream, 10, 'left'); ctx.restore();
+  ctx.save(); ctx.translate(930, 520); ctx.scale(bump(T.booked), bump(T.booked)); outlined(`BOOKED ${booked}`, 0, 0, PIXEL(30), booked ? C.sun : C.cream, 10, 'right'); ctx.restore();
+  // caption, just below the middle and left of the button strip
+  const cs = captionState(t);
+  if (cs) { const k = ease.outCubic(seg(t, cs.t0, cs.t0 + 0.2));
+    ctx.save(); ctx.globalAlpha = k; ctx.translate(0, (1 - k) * 24);
+    cs.lines.forEach((ln, i) => outlined(ln, 500, 1318 + i * 70, '700 54px "Poppins"', cs.col, 12)); ctx.restore(); }
+}
+
+// ── end card: an iris closes on the shop door, like the end of an old game level, into the usual plum card
+let LOGO;
+function endCard(t) {
+  const d = t - T.iris, k = ease.inOutCubic(seg(d, 0, 0.9)), r = lerp(1700, 0, k);
+  const cxp = (HOUSE.door - CAMS[3]) * PX, cyp = (GY - 16) * PX;
+  ctx.save(); ctx.fillStyle = C.plum; ctx.beginPath(); ctx.rect(-10, -10, W0 + 20, H0 + 20); ctx.arc(cxp, cyp, r, 0, Math.PI * 2, true); ctx.fill('evenodd'); ctx.restore();
+  const z = 1 + 0.012 * Math.max(0, t - T.logo); ctx.save(); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const kk = clamp(spring(t - t0, { freq: 2.6, damp: 0.8 })); if (kk <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, kk * 1.4); ctx.translate(0, (1 - kk) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo - 0.55, () => { const w = 780, h = w * LOGO.height / LOGO.width; ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560, w, h); });
+  rise(T.tag1, () => { ctx.font = '400 60px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 900); });
+  rise(T.tag2, () => { ctx.font = '400 60px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 980); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1095); });
+  rise(T.url, () => { ctx.font = '800 42px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1168); });
+  ctx.restore();
+}
+
+// punch-in on every fall and on the booking; a short shake when someone falls or a bridge lands
+function view(t) {
+  let z = 1, fx = 540, fy = GY * PX, sh = 0;
+  FALL.forEach((f, k) => { const a = ease.outCubic(seg(t, f, f + 0.25)) * (1 - ease.inOutCubic(seg(t, BRIDGE[k] + 0.5, BRIDGE[k] + 1.3))); z += 0.2 * a;
+    const d1 = t - (f + 0.3), d2 = t - BRIDGE[k]; if (d1 >= 0 && d1 < 0.4) sh = Math.max(sh, Math.exp(-d1 * 10)); if (d2 >= 0 && d2 < 0.4) sh = Math.max(sh, 0.8 * Math.exp(-d2 * 10)); });
+  z += 0.22 * (1 - ease.inOutCubic(seg(t, HOOK.start - 0.3, b(0))));                    // the hook opens punched in on the gap
+  z += 0.14 * ease.outCubic(seg(t, T.booked, T.booked + 0.4)) + 0.012 * (1 + Math.sin(t * 0.9));   // never below 1, so the picture always covers the frame
+  return { z, fx: 62 * PX, fy, sx: Math.sin(t * 113) * sh * 14, sy: Math.cos(t * 91) * sh * 10 };
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 0.2;
+  t = Math.round(t * 1e5) / 1e5;                       // exact beat times land on the same side of every switch, whatever order frames render in
+  const cx = cam(t), v = view(t);
+  world(t, cx);
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = C.ink; ctx.fillRect(0, 0, W0, H0);    // nothing from the last frame can show through
+  ctx.save(); ctx.translate(v.fx + v.sx, v.fy + v.sy); ctx.scale(v.z, v.z); ctx.translate(-v.fx, -v.fy);
+  ctx.imageSmoothingEnabled = false; ctx.drawImage(LG, 0, 0, W0, H0);
+  STAGES.forEach((s, k) => sign(s.sign, PITS[k].x + PITS[k].w / 2, cx, BRIDGE[k] + 0.1, t));
+  sign('YOUR BUSINESS', HOUSE.x + 28, cx, -5, t, GY - 53);
+  ctx.restore();
+  // red flash when a customer is lost
+  FALL.forEach(f => { const d = t - (f + 0.3); if (d >= 0 && d < 0.3) { ctx.fillStyle = `rgba(240,100,90,${0.32 * (1 - d / 0.3)})`; ctx.fillRect(0, 0, W0, H0); } });
+  { const d = t; if (d < 0.45) { ctx.fillStyle = `rgba(240,100,90,${0.4 * (1 - d / 0.45)})`; ctx.fillRect(0, 0, W0, H0); } }          // red flash on frame 0
+  { const k = seg(t, HOOK.start, HOOK.start + 0.12) * (1 - seg(t, b(0) - 0.1, b(0) + 0.25)); if (k > 0) { ctx.fillStyle = `rgba(246,240,230,${0.85 * k})`; ctx.fillRect(0, 0, W0, H0); } }   // white flash: the level restarts
+  if (t < T.iris + 0.9) overlay(t);
+  if (t >= T.iris) endCard(t);
+  ctx.restore();
+};
+await loadFonts([PIXEL(44), '700 54px "Poppins"', '600 32px "Poppins"', '400 60px "Young Serif"', '800 42px "Nunito"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
