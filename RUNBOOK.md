@@ -64,12 +64,28 @@ Kai pulled video #11 ("The Empty Week") because it was the same script as most e
 - **Entertain or surprise first, explain last.** Show it, don't list it. At most one line says what Horizon Scales does, and it comes at the end.
 - A pulled video doesn't count toward the test-arm alternation in section 0: count only nightly videos that stayed scheduled or were posted.
 
-## 2c. Skills to use every night (Kai, Nov 11, 2026)
+## 2b-2. A new look is not a new video (Kai, Nov 11 evening)
 
-Kai: "when doing this videos i want you to use these skills: /viral-hook-creator /social-post-writer". Load each with the Skill tool (they may be listed as `anthropic-skills:viral-hook-creator` and `anthropic-skills:social-post-writer`) before writing, and follow them:
+Kai, after seeing #12: "I want it to be more unique instead of being the exact same video over and over again. The entire videos that you post are just explaining the three steps in the exact same way, just different layouts." **This is the most important rule in this file.**
+
+- **Stop making videos that explain what Horizon Scales does or sells.** No "here's the problem, here's our service that fixes it", even for a single service. The services appear on the plum end card and nowhere else, except in type 7 below.
+- **Rotate the TYPE of video, not just the look.** Never the same type two nights running; write the type in `log.md`. Types:
+  1. **A test or game the viewer plays** (a drive-by sign test, "A or B: which would you call?", spot what's wrong).
+  2. **One free tip they can do today in five minutes** that we don't sell (their voicemail greeting, the photo on their profile, where the phone number sits).
+  3. **A trade-life moment or joke** an owner recognizes, with no lesson attached.
+  4. **A myth or hot take:** one opinion, stated plainly, that owners will want to argue with.
+  5. **POV of the homeowner:** how a customer actually picks who to call.
+  6. **Behind the build:** practice work, always labeled "concept".
+  7. **A service story** (one service, one small story). At most one a week.
+- **The buddy test, before building:** finish the sentence "a painter would tell his buddy this video is about ___". If the answer is "a marketing agency", "three leaks" or "why you need ads / a website / an AI receptionist", start over.
+- **Never ask Kai to approve a post.** He said it again on Nov 11: "you dont need my approvle to post, that's the whole point of this chat." Schedule it, and tell him how to stop it. That's all.
+
+## 2c. Skills to use when they help (Kai, Nov 11, 2026)
+
+Kai: "when doing this videos i want you to use these skills: /viral-hook-creator /social-post-writer", then `marketing-skills:social`, then (Nov 11 evening) "Use the skills as needed, please." So: they are tools, not a checklist. Load one with the Skill tool when it will make tonight's hook, caption or format better, and skip it when it won't. When you do load one (they may be listed as `anthropic-skills:viral-hook-creator` and `anthropic-skills:social-post-writer`) before writing, and follow them:
 - **`viral-hook-creator` → the hook.** Use it before you settle the concept. Write several hook options with it, pick the strongest one that is a direct question to the trade owner (Test 1 needs a question hook on both arms), and note in `brief.md` which pattern it uses and the options you rejected.
 - **`social-post-writer` → the caption and titles.** Use it for the post text, the TikTok title, the YouTube Shorts title and the Facebook Reel title in section 6, in the same voice as the hook.
-- **`marketing-skills:social` → the whole post (Kai, Nov 11 afternoon: "also use this one").** Load it every night as well. Read its `references/short-form-video.md` before planning the video, and follow its short-form rules: the first second carries a visual hook, the hook words and (when there is a voice) the spoken hook together; on-screen captions are at most 2 lines of 3–5 words with key words in a second colour; shorter beats longer; the story comes first. Use its "No AI tells" list on the caption and on every on-screen line: no "it's not X, it's Y", no "no X, no Y, no Z" lists, no em dashes, no one-sentence-per-line posts, no engagement bait ("Agree?", "Thoughts?"). The closing question must be a real one a trade owner can answer. If `social-post-writer` isn't installed, this skill covers the caption and titles on its own.
+- **`marketing-skills:social` → the whole post (Kai, Nov 11 afternoon: "also use this one").** Read its `references/short-form-video.md` before planning the video, and follow its short-form rules: the first second carries a visual hook, the hook words and (when there is a voice) the spoken hook together; on-screen captions are at most 2 lines of 3–5 words with key words in a second colour; shorter beats longer; the story comes first. Use its "No AI tells" list on the caption and on every on-screen line: no "it's not X, it's Y", no "no X, no Y, no Z" lists, no em dashes, no one-sentence-per-line posts, no engagement bait ("Agree?", "Thoughts?"). The closing question must be a real one a trade owner can answer. If `social-post-writer` isn't installed, this skill covers the caption and titles on its own.
 - **Kai's rules win over the skills.** If a skill suggests a stat, a number, a result, a testimonial, a guarantee, a "DM me" or a call to book, leave it out (sections 2 and 2b). The social skill also says to create posts as drafts and wait for approval; Kai's standing approval (top of this file) already covers the nightly post, so schedule it as section 6 says. Keep the caption format in section 6: 2–3 short lines, a question for comments, 5 hashtags.
 - If a skill isn't available in the session, say so in the morning message and write the hook and caption by hand to the same rules. Don't skip the video.
 

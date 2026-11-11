@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Drive-By Test — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #BFE3F0; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, V, T, CAPS, PUNCH } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, hash, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, TAU = Math.PI * 2;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', ink: '#22102E', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A', sky0: '#8FCDE6', sky1: '#EAF4EE', lawn: '#7DB86A', lawn2: '#6AA659', walk: '#D9D2C4', road: '#4A4654' };
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const mod = (a, n) => ((a % n) + n) % n;
+
+// how far the roadside has moved (px). Full speed, then the car slows almost to a stop for the comparison.
+function dist(t) {
+  const slow = V * 0.07;
+  if (t <= T.slow0) return V * t;
+  const d0 = V * T.slow0, dur = T.slow1 - T.slow0;
+  if (t <= T.slow1) { const k = (t - T.slow0) / dur; return d0 + dur * (V * k + (slow - V) * k * k / 2); }
+  return d0 + dur * (V + slow) / 2 + slow * (t - T.slow1);
+}
+const signX = (tc, t) => 540 + (dist(tc) - dist(t));
+
+// ── the street outside the window
+function house(x, base, i) {
+  const w = 300 + hash(i, 1) * 120, h = 190 + hash(i, 2) * 70, cols = ['#F3E3C8', '#E9B9A6', '#BCD3C2', '#C9D6EA', '#F0D9A0'], c = cols[Math.floor(hash(i, 3) * cols.length)];
+  ctx.fillStyle = c; ctx.fillRect(x, base - h, w, h);
+  ctx.fillStyle = hash(i, 4) > 0.5 ? '#7A4A45' : '#5B5470'; ctx.beginPath(); ctx.moveTo(x - 26, base - h); ctx.lineTo(x + w / 2, base - h - 120 - hash(i, 5) * 40); ctx.lineTo(x + w + 26, base - h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#6B4A3A'; ctx.fillRect(x + w * 0.42, base - 96, 54, 96);
+  ctx.fillStyle = '#FDF6E0'; ctx.fillRect(x + w * 0.1, base - h * 0.72, 62, 62); ctx.fillRect(x + w * 0.7, base - h * 0.72, 62, 62);
+}
+function tree(x, base, i) {
+  ctx.fillStyle = '#6B4A3A'; ctx.fillRect(x - 9, base - 120, 18, 120);
+  ctx.fillStyle = hash(i, 6) > 0.5 ? '#4E9A5A' : '#5FAE60'; ctx.beginPath(); ctx.arc(x, base - 170, 78 + hash(i, 7) * 26, 0, TAU); ctx.fill(); ctx.beginPath(); ctx.arc(x + 46, base - 130, 52, 0, TAU); ctx.fill();
+}
+function street(t) {
+  const d = dist(t);
+  const g = ctx.createLinearGradient(0, 0, 0, 1000); g.addColorStop(0, C.sky0); g.addColorStop(1, C.sky1); ctx.fillStyle = g; ctx.fillRect(-20, -20, 1120, 1100);
+  ctx.fillStyle = 'rgba(255,255,255,0.85)';                                                                   // clouds, very slow
+  for (let i = 0; i < 5; i++) { const x = mod(i * 420 + 130 - d * 0.04, 2100) - 300, y = 470 + hash(i, 11) * 150; rr(x, y, 240, 54, 27); ctx.fill(); rr(x + 50, y - 30, 130, 54, 27); ctx.fill(); }
+  ctx.fillStyle = '#A9CFA7';                                                                                  // far hills
+  for (let i = -1; i < 4; i++) { const x = mod(i * 620 - d * 0.12, 2480) - 700; ctx.beginPath(); ctx.ellipse(x + 300, 1010, 430, 150 + hash(i + 5, 12) * 60, 0, Math.PI, TAU); ctx.fill(); }
+  ctx.fillStyle = C.lawn2; ctx.fillRect(-20, 990, 1120, 80);
+  const s = d * 0.55, P = 560, i0 = Math.floor((s - 400) / P);                                                // houses and trees
+  for (let i = i0; i < i0 + 5; i++) { const x = i * P - s; if (i % 3 === 2) tree(x + 200, 1040, i); else house(x, 1040, i); }
+  ctx.fillStyle = C.lawn; ctx.fillRect(-20, 1040, 1120, 290);
+  ctx.fillStyle = 'rgba(255,255,255,0.10)'; for (let i = 0; i < 9; i++) { const x = mod(i * 190 - d, 1700) - 300; ctx.fillRect(x, 1040, 70, 290); }   // mown stripes
+  ctx.fillStyle = C.walk; ctx.fillRect(-20, 1330, 1120, 76);
+  ctx.fillStyle = 'rgba(0,0,0,0.10)'; for (let i = 0; i < 8; i++) { const x = mod(i * 240 - d, 1920) - 400; ctx.fillRect(x, 1330, 5, 76); }
+  ctx.fillStyle = C.road; ctx.fillRect(-20, 1406, 1120, 540);
+  ctx.fillStyle = '#F6E7A8'; for (let i = 0; i < 6; i++) { const x = mod(i * 420 - d * 1.5, 2520) - 700; ctx.fillRect(x, 1560, 210, 16); }
+}
+
+// ── the two yard signs. Drawn around (0,0) = centre of the board, 520 × 372.
+function signA() {
+  ctx.fillStyle = '#7B6A58'; ctx.fillRect(-190, 150, 14, 150); ctx.fillRect(176, 150, 14, 150);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 16 * SC; ctx.shadowOffsetY = 8 * SC; ctx.fillStyle = '#FFFFFF'; ctx.fillRect(-260, -186, 520, 372); ctx.restore();
+  ctx.strokeStyle = '#B03A3A'; ctx.lineWidth = 5; ctx.strokeRect(-250, -176, 500, 352);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#B03A3A'; ctx.beginPath(); ctx.arc(-206, -132, 26, 0, TAU); ctx.fill();
+  ctx.font = '400 30px "Young Serif"'; ctx.fillStyle = '#1F3F8A'; ctx.fillText('Your Name Painting &', 26, -136); ctx.fillText('Home Services, LLC', 26, -102);
+  ctx.font = '600 19px "Poppins"'; ctx.fillStyle = '#333';
+  ['Interior • Exterior • Cabinets • Decks • Fences', 'Drywall • Trim • Pressure Washing • Staining', 'Wallpaper Removal • Popcorn Ceilings • Garages'].forEach((l, i) => ctx.fillText(l, 0, -60 + i * 27));
+  ctx.font = '600 21px "Poppins"'; ctx.fillStyle = '#B03A3A'; ctx.fillText('FREE ESTIMATES • LICENSED • INSURED', 0, 30);
+  ctx.font = '400 22px "Young Serif"'; ctx.fillStyle = '#1F3F8A'; ctx.fillText('Family owned. Quality work. Fair prices.', 0, 62);
+  ctx.font = '600 24px "Poppins"'; ctx.fillStyle = '#222'; ctx.fillText('Call (208) 555-0142 or (208) 555-0177', 0, 104);
+  ctx.font = '600 19px "Poppins"'; ctx.fillStyle = '#555'; ctx.fillText('www.yournamepainting.example • Find us on social!', 0, 136);
+  ctx.font = '600 17px "Poppins"'; ctx.fillStyle = '#B03A3A'; ctx.fillText('Ask about our seasonal specials', 0, 162);
+}
+function signB() {
+  ctx.fillStyle = '#7B6A58'; ctx.fillRect(-190, 150, 14, 150); ctx.fillRect(176, 150, 14, 150);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.22)'; ctx.shadowBlur = 16 * SC; ctx.shadowOffsetY = 8 * SC; ctx.fillStyle = C.ink; ctx.fillRect(-260, -186, 520, 372); ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 84px "Poppins"'; ctx.fillStyle = C.cream; ctx.fillText('PAINTING', 0, -56);
+  ctx.fillStyle = C.coral; ctx.fillRect(-200, -26, 400, 8);
+  ctx.font = '700 104px "Poppins"'; ctx.fillStyle = C.sun; ctx.fillText('555-0142', 0, 112);
+}
+function sign(which, x, y, s = 1, rot = 0) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s); which === 'A' ? signA() : signB(); ctx.restore(); }
+
+function passing(t) {
+  if (t < T.cmp + 0.4) {
+    const xa = signX(T.passA, t), xb = signX(T.passB, t), fade = 1 - seg(t, T.cmp, T.cmp + 0.4);
+    ctx.save(); ctx.globalAlpha = fade;
+    if (xa > -400 && xa < 1500) sign('A', xa, 880);
+    if (xb > -400 && xb < 1500) sign('B', xb, 880);
+    ctx.restore();
+  }
+}
+
+// both signs side by side (stacked) once the car slows down, then the answer
+function compare(t) {
+  if (t < T.cmp) return;
+  const ka = clamp(sp(t - T.cmp, { freq: 2.8, damp: 0.7 }), 0, 1.1), kb = clamp(sp(t - T.cmp - 0.25, { freq: 2.8, damp: 0.7 }), 0, 1.1), tip = t - T.tip;
+  const dim = tip >= 0 ? lerp(1, 0.45, ease.outCubic(seg(tip, 0, 0.4))) : 1, grow = tip >= 0 ? 1 + 0.07 * clamp(sp(tip, { freq: 3, damp: 0.6 }), 0, 1.2) : 1;
+  const tag = (txt, x, y, k) => { ctx.save(); ctx.translate(x, y); ctx.scale(k, k); ctx.fillStyle = C.cream; ctx.beginPath(); ctx.arc(0, 0, 44, 0, TAU); ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 5; ctx.stroke(); ctx.font = '700 50px "Poppins"'; ctx.textAlign = 'center'; ctx.fillStyle = C.ink; ctx.fillText(txt, 0, 18); ctx.restore(); };
+  if (ka > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, ka * 2) * dim; sign('A', 540 + (1 - ka) * 700, 640, 0.74, -0.02); ctx.restore(); ctx.save(); ctx.globalAlpha = Math.min(1, ka * 2); tag('A', 270, 520, Math.min(1.1, ka)); ctx.restore(); }
+  if (kb > 0) { ctx.save(); ctx.globalAlpha = Math.min(1, kb * 2); sign('B', 540 + (1 - kb) * 700, 990, 0.74 * grow, 0.02); tag('B', 270, 872, Math.min(1.1, kb)); ctx.restore(); }
+  if (tip >= 0) {                                   // a coral ring is drawn around B
+    const k = ease.outCubic(seg(tip, 0.1, 0.6));
+    ctx.save(); ctx.strokeStyle = C.coral; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.beginPath();
+    for (let i = 0; i <= 80 * k; i++) { const th = -1.9 + (i / 80) * TAU * 1.05, w = 1 + 0.02 * Math.sin(th * 3); const x = 540 + 262 * w * Math.cos(th), y = 986 + 190 * w * Math.sin(th); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+    ctx.stroke(); ctx.restore();
+  }
+}
+
+// ── the car: we are looking out of the side window
+function carFrame(t) {
+  const bump = 3 * Math.sin(t * 9) * (t < T.slow1 ? 1 : 0.2);
+  ctx.save(); ctx.translate(0, bump);
+  ctx.fillStyle = '#1A0F24'; ctx.fillRect(-20, 1640, 1120, 320);
+  rr(-20, 1610, 1120, 60, 26); ctx.fillStyle = '#2E1F3D'; ctx.fill();
+  ctx.fillStyle = 'rgba(255,255,255,0.08)'; ctx.fillRect(-20, 1616, 1120, 8);
+  ctx.restore();
+  const g = ctx.createLinearGradient(0, 0, 420, 700); g.addColorStop(0, 'rgba(255,255,255,0.16)'); g.addColorStop(0.5, 'rgba(255,255,255,0)'); ctx.fillStyle = g; ctx.fillRect(-20, -20, 1120, 1660);   // glass reflection
+}
+
+// ── overlays
+function title(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, 520); g.addColorStop(0, 'rgba(28,2,40,0.94)'); g.addColorStop(0.72, 'rgba(28,2,40,0.82)'); g.addColorStop(1, 'rgba(28,2,40,0)');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, 1120, 540);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 38px "Poppins"'; ctx.letterSpacing = '9px'; ctx.fillStyle = C.sun; ctx.fillText('PAINTERS:', 544, 226); ctx.letterSpacing = '0px';
+  ctx.font = '400 74px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('Can a driver read', 540, 306);
+  const a = 'your ', bq = 'yard sign?', wa = ctx.measureText(a).width, wb = ctx.measureText(bq).width, x0 = 540 - (wa + wb) / 2;
+  ctx.textAlign = 'left'; ctx.fillText(a, x0, 390); ctx.fillStyle = C.coralLite; ctx.fillText(bq, x0 + wa, 390);
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = clamp(sp(t - c.t0, { freq: 3.0, damp: 0.64 }), 0, 1.15), out = 1 - seg(t, c.t1 - 0.1, c.t1), two = c.lines.length === 2;
+  ctx.font = c.big ? '700 84px "Poppins"' : '800 58px "Nunito"';
+  const tw = Math.max(...c.lines.map(l => ctx.measureText(l).width)), w = tw + 100, h = two ? 186 : c.big ? 150 : 120;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1345 + (1 - Math.min(1, k)) * 24); ctx.rotate(c.big ? -0.02 : 0); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 20 * SC; ctx.shadowOffsetY = 8 * SC; rr(-w / 2, -h / 2, w, h, 26); ctx.fillStyle = c.big ? C.sun : C.cream; ctx.fill(); ctx.restore();
+  rr(-w / 2 + 8, -h / 2 + 8, w - 16, h - 16, 19); ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.ink;
+  if (two) { ctx.fillText(c.lines[0], 0, -14); ctx.fillText(c.lines[1], 0, 56); } else ctx.fillText(c.lines[0], 0, c.big ? 30 : 20);
+  ctx.restore();
+}
+
+// ── end: the plum card slides across like the next thing passing the window
+let LOGO;
+function endCard(t) {
+  const k = ease.inOutCubic(seg(t, T.end, T.shut)), x = 1120 - 1140 * k;
+  ctx.fillStyle = C.plum; ctx.fillRect(x, -20, 1140, 1960);
+  ctx.fillStyle = `rgba(245,163,154,${0.6 * (1 - seg(t, T.shut - 0.05, T.shut + 0.25))})`; ctx.fillRect(x - 8, -20, 8, 1960);
+  if (t < T.logo) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(x, -20, 1140, 1960); ctx.clip();
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 760); glow.addColorStop(0, 'rgba(240,100,90,0.17)'); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(-20, -20, 1120, 1960);
+  const rise = (t0, fn) => { const q = clamp(sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.4); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 968); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1174); });
+  ctx.restore();
+}
+
+function zoom(t) {
+  let z = 1 + 0.035 * (1 - ease.outCubic(seg(t, 0, 0.9))) + 0.012 * (t / DUR);
+  for (const p of PUNCH) { const d = t - p; if (d >= 0 && d < 1) z += 0.02 * Math.exp(-d * 6); }
+  if (t >= T.shut) z += 0.006 * (t - T.shut);
+  return z;
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 3.55;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  const z = zoom(t); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  if (t < T.shut) { street(t); passing(t); compare(t); carFrame(t); title(t); CAPS.forEach(c => caption(c, t)); }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 74px "Young Serif"', '800 58px "Nunito"', '600 32px "Poppins"', '700 84px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
