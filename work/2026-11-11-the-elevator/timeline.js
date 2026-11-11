@@ -7,8 +7,8 @@ export const b = n => n * BEAT;        // a TIME in beats → seconds
 export const L = n => n * BEAT;        // a LENGTH in beats → seconds
 
 export const VO = [   // [start, duration, text]
-  [0.15, 2.889, 'Painters. Where do you show up when someone searches?'],
-  [3.5, 2.549, 'Top floor. This is where the phones ring.'],
+  [0.15, 2.454, 'Painters. How deep is your business buried?'],
+  [3.5, 2.632, 'Page one. This is where the phones ring.'],
   [6.5, 1.388, "You're a bit further down."],
   [8.8, 0.859, 'Keep going.'],
   [10.25, 0.95, 'Still going.'],
@@ -27,7 +27,7 @@ export const T = {
 export const DUR = 22.5;
 
 export const CAPS = [  // running captions on a dark panel, just below the middle
-  { t0: 3.5, t1: 6.5, lines: ['Top floor. This is where', 'the phones ring.'] },
+  { t0: 3.5, t1: 6.5, lines: ['Page one. This is where', 'the phones ring.'] },
   { t0: 6.5, t1: 8.8, lines: ['You’re a bit', 'further down.'] },
   { t0: 8.8, t1: 10.25, lines: ['Keep going.'] },
   { t0: 10.25, t1: 12.0, lines: ['Still going.'] },

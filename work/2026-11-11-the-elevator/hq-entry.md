@@ -17,15 +17,16 @@
 | # | Title | Length | Status | Source |
 |---|---|---|---|---|
 | 11 | The Empty Week (whiteboard week schedule; three job notes slip away, an ADS, WEBSITE and AI RECEPTIONIST magnet each make one stick) | 25.8 s | Made Nov 11, 2026 (nightly run) · **pulled by Kai before posting, never published** | `claude/content/empty-week/` |
-| 12 | The Elevator (one idea: you can't be found. Hook on frame 0, spoken in the first second: "Painters: where do you show up when someone searches?" → search results are a building: "Top floor. This is where the phones ring." → "You're a bit further down." → the floor display counts down to PAGE 47, "Keep going." "Still going." → a dusty basement, a sleeping phone, YOUR BUSINESS: "There you are." → the car's sign lights up ADS, the desk rides up: "Ads can put you on the top floor." → the phone rings on page 1 → elevator doors close into the end card) · flat building cutaway at dusk, big PAGE display, captions on dark panels; original elevator-music bossa; narrated by the Michael AI voice; built to the frame safety rules | 22.5 s | Made Nov 11, 2026 · scheduled Nov 11, 2026 6:00 PM MT (10 AM was taken by #10) · Test 1 arm: VOICE · AI-content labels on · technical checks pass · cover = the hook frame | `claude/content/the-elevator/` (brief.md, index.html incl. cover `?dir=thumb`, timeline.js, score.mjs, vo_lines.json) |
+| 12 | The Elevator (one idea: you can't be found. Hook on frame 0, spoken in the first second: "Painters: how deep is your business buried?" (hook redone with the viral-hook-creator skill) → search results are a building: "Page one. This is where the phones ring." → "You're a bit further down." → the floor display counts down to PAGE 47, "Keep going." "Still going." → a dusty basement, a sleeping phone, YOUR BUSINESS: "There you are." → the car's sign lights up ADS, the desk rides up: "Ads can put you on the top floor." → the phone rings on page 1 → elevator doors close into the end card) · flat building cutaway at dusk, big PAGE display, captions on dark panels; original elevator-music bossa; narrated by the Michael AI voice; built to the frame safety rules | 22.5 s | Made Nov 11, 2026 · scheduled Nov 11, 2026 6:00 PM MT (10 AM was taken by #10) · Test 1 arm: VOICE · AI-content labels on · technical checks pass · cover = the hook frame | `claude/content/the-elevator/` (brief.md, index.html incl. cover `?dir=thumb`, timeline.js, score.mjs, vo_lines.json) |
 
 **Captions for #12 "The Elevator" (one caption for all four apps, as scheduled):**
-> Painters: where do you show up when someone searches? 🛗
-> The phones ring on the top floor. A lot of good painters are way further down.
+> Painters: how deep is your business buried? 🛗
+> Page one is where the phones ring. Being good at the job doesn't move you up the list.
 > What page do you think you're on? 👇
 > #smallbusiness #servicebusiness #contractorlife #localbusiness #paintingcontractor
-- *TikTok title:* Painters: where do you show up when someone searches?
-- *YouTube Shorts title:* Painters: where do you show up in search? #smallbusiness #shorts
+- *TikTok title:* Painters: how deep is your business buried?
+- *YouTube Shorts title:* Painters: how deep is your business buried? #smallbusiness #shorts
 - *Facebook Reel title:* The Elevator
+- The caption was written by hand: the `social-post-writer` skill was not available in this session.
 - Video: https://raw.githubusercontent.com/Horizon301/horizonscales-videos/main/videos/2026-11-11-the-elevator/video.mp4
 - Rule check: no stats, results, prices, guarantee, opening date, real names or pitch; "page 47" is a joke, not a figure; "can" keeps the ads line from being a promise; AI voice, so the AI-content label is on for TikTok, Instagram and YouTube.

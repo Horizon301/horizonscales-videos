@@ -154,8 +154,8 @@ function title(t) {
   ctx.fillStyle = g; ctx.fillRect(-20, -20, 1120, 660);
   ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
   ctx.font = '600 38px "Poppins"'; ctx.letterSpacing = '9px'; ctx.fillStyle = C.sun; ctx.fillText('PAINTERS:', 544, 228); ctx.letterSpacing = '0px';
-  ctx.font = '800 60px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('Where do you show up', 540, 304);
-  ctx.fillText('when someone searches?', 540, 378);
+  ctx.font = '800 76px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('How deep is your', 540, 308);
+  ctx.fillText('business ', 540 - ctx.measureText('business buried?').width / 2 + ctx.measureText('business ').width / 2, 392); ctx.fillStyle = C.coral; ctx.fillText('buried?', 540 + ctx.measureText('business buried?').width / 2 - ctx.measureText('buried?').width / 2, 392);
 }
 function display(t) {
   const yc = carY(t), v = speed(t), n = clamp(Math.round(yc / FH) + 1, 1, FLOORS), moving = Math.abs(v) > 60;
@@ -216,7 +216,7 @@ window.render = t => {
   if (t >= T.doors) endCard(t);
   ctx.restore();
 };
-await loadFonts(['800 60px "Nunito"', '700 62px "Nunito"', '600 32px "Poppins"', '700 92px "Poppins"']);
+await loadFonts(['800 76px "Nunito"', '700 62px "Nunito"', '600 32px "Poppins"', '700 92px "Poppins"']);
 LOGO = await loadImage('assets/logo-long.png');
 window.render(0); window.READY = true;
 </script>
