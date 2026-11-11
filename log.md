@@ -2,7 +2,7 @@
 
 Every video made so far, newest last. The nightly run reads this so it doesn't repeat a concept, look or music genre, and adds a line for each new video.
 
-Format: `date · #n slug · concept · look · music · hook · status`
+Format: `date · #n slug · test arm · concept · look · music · hook · length · status`
 
 ## Made by hand in the Content & Social chat (Oct 28 – Nov 10, 2026)
 #1–#9 were posted by Kai by Nov 10. #10 is scheduled in Metricool.
@@ -16,5 +16,26 @@ Format: `date · #n slug · concept · look · music · hook · status`
 - Nov 3 · #8 we-dont-just · kinetic type, one idea per beat · big lowercase type on plum, cream flashes · phonk-style · "You don't need a website. You need booked jobs." · posted by Kai (by Nov 10)
 - Nov 10 · #9 the-swing · the logo swings like a pendulum, each pass wipes a leak into its fix · cream paper, serif type, coral underlines · swung boom-bap with a clock tick · "You never hear about the jobs you lose." · posted by Kai (by Nov 10)
 - Nov 10 · #10 level-1 · retro 8-bit game: customers fall into 3 pits, bridges fix each, the 4th reaches the shop · pixel sunset world, pixel font · chiptune · GAME OVER screen · scheduled Nov 11, 10:00 AM MT in Metricool (post id 423708808)
+
+## Results (per app, written 48 h+ after posting; numbers under 300 views are recorded but don't count)
+Watch rate = average watch time ÷ length. Engagement = (likes + comments + shares + saves) ÷ views.
+
+| Video | App | Posted | Views | Watch rate | Likes | Comments | Shares | Saves | Engagement | IG skip rate | Counts? |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| #7 overview (voice) | TikTok | Nov 4 | 52,607 | ≈9% (4 s of 44) | 109 | 4 | 4 | – | 0.2% | – | yes |
+| #6 quiet-phone (voice) | TikTok | Nov 3 | 657 | ≈23% (7 s of 31) | 38 | 0 | 0 | – | 5.8% | – | yes |
+| #8 we-dont-just | TikTok | Nov 4 | 96 | ≈8% (1 s of 13) | 0 | 0 | 0 | – | 0% | – | no (<300) |
+| #3 likes-dont-book-jobs | TikTok | Nov 3 | 122 | ≈4% (1 s of 24) | 1 | 0 | 1 | – | 1.6% | – | no (<300) |
+| #4 one-home | TikTok | Nov 3 | 176 | ≈9% (2 s of 22) | 2 | 0 | 1 | – | 1.7% | – | no (<300) |
+| #2 pretty-website | TikTok | Oct 29 | 136 | ≈5% (1 s of 20) | 2 | 0 | 0 | – | 1.5% | – | no (<300) |
+| #1 missed-call | TikTok | Oct 29 | 130 | ≈15% (3 s of 20) | 1 | 0 | 0 | – | 0.8% | – | no (<300) |
+| #2 pretty-website | Instagram | Oct 29 | 40 | ≈16% (3.3 s of ~20) | 0 | 0 | 0 | 0 | 0% | 78.9% | no (<300) |
+| #1 missed-call | Instagram | Oct 29 | 136 | ≈46% (9.2 s of ~20) | 0 | 0 | 0 | 0 | 0% | 48.6% | no (<300) |
+
+Baseline pulled Nov 10 from Metricool (TikTok average watch time comes in whole seconds, so short-video rates are rough). #9 was too new to count.
+
+## Tests
+- **Test 1 · AI voice vs. no voice** · started Nov 11 · alternate nights (even count of nightly videos = VOICE, odd = TEXT), both with a direct-question hook · ends when each arm has 3 counted videos · result: –
+- Test 2 (planned): question hook vs. bold-statement hook.
 
 ## Nightly runs

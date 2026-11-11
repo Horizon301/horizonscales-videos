@@ -4,7 +4,31 @@ This repo holds everything the nightly run needs. Each night (about 1:30 AM Moun
 
 Read this whole file before starting. The rules here are Kai's, not suggestions.
 
+**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules → 5. make → 6. save and schedule → 7. record and report.
+
 ---
+
+## 0. Results first, then tonight's test (Kai, Nov 10 grilling)
+
+**Goal.** Kai's success measure is **watch rate** = average watch time ÷ video length. He wants 50–60%+. As of Nov 10 most videos sit at 0–9% (viewers leave in the first 1–2 seconds), with the best at 23% (TikTok, "Why is this roofer's phone so quiet?") and 15% (Instagram, "One Home"). Aim as high as possible every night; progress is judged in stages: **Stage 1:** the median nightly video beats 15% and at least one beats 23% → **Stage 2:** median 30%+ → **Stage 3:** 50%+.
+
+**Every night, before making anything:**
+1. Pull per-post results from Metricool (`getAnalyticsDataByMetrics`, brandId 7855113, `from` = 30 days ago, `to` = now, America/Denver). Field IDs:
+   - **TikTok:** `TKPO02` published, `TKPO05` caption, `TKPO06` length (s), `TKPO07` views, `TKPO08` likes, `TKPO09` comments, `TKPO10` shares, `TKPO15` average watch time (s), `TKPO13` full-watch rate.
+   - **Instagram Reels:** `IGRE02` published, `IGRE03` caption, `IGRE23` views, `IGRE10` likes, `IGRE07` comments, `IGRE21` shares, `IGRE12` saves, `IGRE24` average watch time (s), `IGRE27` retention %, `IGRE30` skip rate (swiped away in the first 3 s: the direct hook score).
+   - **YouTube Shorts** ("videos published in range"): `YTVP02` published, `YTVP17` title, `YTVP06` views, `YTVP08` average view duration, `YTVP09` likes, `YTVP11` comments, `YTVP12` shares.
+   - **Facebook Reels:** `FBRE02` published, `FBRE05` caption, `FBRE10` views, `FBRE08` likes, `FBRE07` actions, `FBRE13` average time watched.
+   Match each post to its video by caption text and date. Watch rate = average watch time ÷ the video's length (from `log.md` or the brief when the app doesn't give the length).
+2. Write the numbers into the **Results** table in `log.md` for every post that is **at least 48 h old**: per app, views, watch rate, likes, comments, shares, saves, engagement rate ((likes + comments + shares + saves) ÷ views), Instagram skip rate.
+3. **What counts:** a number counts only once that post has **300+ views on that app** after 48 h (Kai: "300 is a good baseline but it will vary"; if posts rarely reach 300, say so in the Sunday scorecard and propose a lower line). Below the line, record it but don't act on it. A pattern needs **3 counted videos** before you drop something or do more of it. One fluke never changes the rules.
+4. **How to rank:** watch rate first, then engagement rate, then views (Kai: "watch rate is first"). Views depend on luck and timing.
+5. Keep doing what beats the median, stop doing what lands in the bottom third, and **change one thing at a time** so the cause is clear.
+
+**The test plan.**
+- **Test 1 (from Nov 11): AI voice vs. no voice.** Alternate nights: if the number of nightly videos already in `log.md` is even, tonight is **VOICE**; if odd, **TEXT**. Both arms open on a **direct question to the trade owner** (the hook style of the best video so far). VOICE: Michael voice asks the question in the first second and talks through the video; on-screen text still carries the key words (many people watch muted). TEXT: the same kind of question as on-screen text, no voice. Everything else (look, story, music) varies freely. Evidence so far (Nov 10): the only two videos with a voice were the top two on TikTok by views (#7 52,607 views, about 9% watch rate; #6 657 views, about 23%); every no-voice video got under 200 TikTok views.
+- **Test 1 ends** when each arm has 3 counted videos. The arm with the higher median watch rate becomes the default, and you record the result in `log.md` and the Sunday scorecard.
+- **Test 2 (next):** question hook vs. bold-statement hook, using the winning voice setting.
+- Then keep going one variable at a time (format: story vs. list vs. game; length: 15 s vs. 25 s; first-frame motion). Write each new test in `log.md` before starting it.
 
 ## 1. The business (what every video is about)
 
@@ -28,7 +52,7 @@ Read this whole file before starting. The rules here are Kai's, not suggestions.
 - **The AI receptionist is always called AI.** It is never shown as a human.
 - **No pitching or outreach:** no "DM me", no "book a call with me", no tagging businesses. Captions may ask a question for comments.
 - **Original work only:** no copyrighted songs, characters, logos, games or film scenes. Music is synthesized in `score.mjs`. Don't recreate a famous game, show, ad or song.
-- **No voice.** The nightly videos use on-screen text and sound only, so no AI-voice label is needed.
+- **Voice follows the test plan (section 0).** On voice nights the narration is the AI voice (Kokoro `am_michael`, made with `kit/voice/make_vo.py`), never a real person's voice or a clone, and the post turns on every app's AI-content label. On text nights there is no voice.
 
 ## 3. Style rules (from Kai's feedback)
 
@@ -85,11 +109,11 @@ If a gate still fails after two fix attempts, **don't schedule anything**. Write
 ## 6. Save and schedule
 
 1. Copy the finished files to `videos/YYYY-MM-DD-<slug>/`: `video.mp4`, `cover.jpg`, and `brief.md` (idea, script, look, sound, checks). Keep the source (`index.html`, `timeline.js`, `score.mjs`, `brief.md`) in `work/YYYY-MM-DD-<slug>/` and delete its `audio/ out/ qa/` folders and any `node_modules`.
-2. Add a line to `log.md` (date, slug, concept, look, music genre, hook, scheduled time, Metricool post id).
+2. Add a line to `log.md` under **Nightly runs** (date, #n, slug, **test arm: VOICE or TEXT**, concept, look, music genre, hook, length in seconds, scheduled time, Metricool post id).
 3. Commit and push to `main`: `git -c user.name="Claude" -c user.email="noreply@anthropic.com" commit -m "..."`, then `git push origin main`. If the push is rejected, `git pull --rebase origin main` and push again.
 4. Check the public link loads: `curl -sS -o /dev/null -w "%{http_code} %{size_download}\n" https://raw.githubusercontent.com/Horizon301/horizonscales-videos/main/videos/<folder>/video.mp4` → `200` and the full size.
 5. **Pick the time.** Metricool brand `blogId` **7855113**, timezone **America/Denver**. Call `getBestTimeToPostByNetwork` for `tiktok` and `instagram` for the post day: **the same calendar day the run started in America/Denver** (the run starts about 1:30 AM, so the post goes out that morning and Kai can check it first). If the best hour is less than 2 h away when you finish, use the best hour that is at least 2 h away. Add the two values hour by hour for hours 8–20 and take the highest. It has been **10:00** so far. Then call `getScheduledPosts` for that day. If another post is already within 6 h of that hour, use the best hour at least 6 h away from it; if none, move to the next day.
-6. **Schedule** with `createScheduledPost`: `autoPublish: true`, `draft: false`, `media: [<raw video URL>]`, providers `instagram` (`instagramData.type: "REEL"`, `showReelOnFeed: true`), `tiktok` (`tiktokData.title` is **required**: a short title, `privacyOption: "PUBLIC_TO_EVERYONE"`), `youtube` (`youtubeData`: `title` with `#shorts`, `type: "short"`, `privacy: "public"`, `madeForKids: false`), `facebook` (`facebookData.type: "REEL"`, `title`). Set `publicationDate` in America/Denver. Leave AI-content flags false (clearly animated, no AI voice), per the HQ content rules.
+6. **Schedule** with `createScheduledPost`: `autoPublish: true`, `draft: false`, `media: [<raw video URL>]`, providers `instagram` (`instagramData.type: "REEL"`, `showReelOnFeed: true`), `tiktok` (`tiktokData.title` is **required**: a short title, `privacyOption: "PUBLIC_TO_EVERYONE"`), `youtube` (`youtubeData`: `title` with `#shorts`, `type: "short"`, `privacy: "public"`, `madeForKids: false`), `facebook` (`facebookData.type: "REEL"`, `title`). Set `publicationDate` in America/Denver. **AI-content flags:** on VOICE nights set `tiktokData.isAigc: true`, `instagramData.isAiGenerated: true` and `youtubeData.isAiGeneratedContent: true` (AI voice). On TEXT nights leave them false (clearly animated, no AI voice), per the HQ content rules.
    - **Caption** (`text`, one for all platforms): 2–3 short lines a trade owner would read, the same voice as the hook, then a question that invites comments, then **5 hashtags**: `#smallbusiness #servicebusiness #contractorlife #localbusiness #marketing` (swap one for a trade tag if the video is about a trade).
    - Don't send `videoThumbnailUrl` (it can reject the whole post on some account types). The cover is for `videos/` and the HQ record.
 7. Save the returned `plannerUrl`.
@@ -97,4 +121,8 @@ If a gate still fails after two fix attempts, **don't schedule anything**. Write
 ## 7. Record it in HQ and report
 
 - If the Projects tool is available (HorizonScales HQ): add a row to the video library table in `claude/14_Content_Social.md` (next number, title, one-line description, length, "Made <date> · scheduled <date time> (nightly run)") and its captions block above the newest captions, then bump the version line. Also save the source to `claude/content/<slug>/` (brief.md, index.html, timeline.js, score.mjs). Read before writing and write back the whole file.
-- **Final message** (Kai reads it in the morning): the video's title and hook in one line, the time it will post, the Metricool planner link, the raw video link to watch it, and one sentence: **"To stop it, delete or reschedule the post in Metricool before <time>."** If nothing was scheduled, say so and why.
+- **Final message** (Kai reads it in the morning; he asked for exactly this, in this order):
+  1. **Yesterday's post:** did it publish on all 4 apps? (Check with `getScheduledPosts` for yesterday, `extendedRange: true`, and look at each provider's status; a failure goes **at the very top** in bold.) Then how it did, per app: views, watch rate, likes, comments, shares (and saves and skip rate on Instagram). Mark numbers under 300 views as "too early to count". If yesterday's post is less than 24 h old, give what's there and say so.
+  2. **Today's video:** title, hook, test arm (VOICE or TEXT), the time it will post, the raw video link to watch it, the Metricool planner link, and: **"To stop it, delete or reschedule the post in Metricool before <time>."**
+  3. One line on the test so far (e.g. "Voice vs. no voice: 1 counted video each, too early to call").
+  If nothing was scheduled tonight, say so and why, still with part 1.
