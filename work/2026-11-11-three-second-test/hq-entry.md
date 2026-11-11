@@ -19,3 +19,7 @@
 - *YouTube Shorts title:* Does your website pass the 3-second test? #smallbusiness #shorts
 - *Facebook Reel title:* The 3-Second Test
 - Video: https://raw.githubusercontent.com/Horizon301/horizonscales-videos/main/videos/2026-11-11-three-second-test/video.mp4
+
+**Animation skills and sound (Kai, Nov 11 evening, Confirmed):**
+- Kai uploaded six animation skills (zach-d-films, stick-figure, minimalistic-graphics, map-route, breakdown, graph) and wants the nightly videos to use them or take inspiration from them. Written into RUNBOOK section 2d. The graph skill is only used with real numbers.
+- Kai on sound: "You kind of keep using the same beeps and stuff for each video ... I don't think it sounds very good anyway." From the next video on, music is rendered from real sampled instruments (`kit/sound/sf_render.py`, GeneralUser GS SoundFont, licence allows commercial music use), with a different band every night and no synth beeps on every change. Written into RUNBOOK section 3b. Videos #1–#14 used the old synth sounds.
