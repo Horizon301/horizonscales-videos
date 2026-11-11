@@ -4,7 +4,7 @@ This repo holds everything the nightly run needs. Each night (about 1:30 AM Moun
 
 Read this whole file before starting. The rules here are Kai's, not suggestions.
 
-**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook, caption and social skills) → 5. make → 6. save and schedule → 7. record and report.
+**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook, caption and social skills; 2d: the animation skills; 3b: sound) → 5. make → 6. save and schedule → 7. record and report.
 
 ---
 
@@ -89,6 +89,32 @@ Kai: "when doing this videos i want you to use these skills: /viral-hook-creator
 - **`marketing-skills:social` → the whole post (Kai, Nov 11 afternoon: "also use this one").** Read its `references/short-form-video.md` before planning the video, and follow its short-form rules: the first second carries a visual hook, the hook words and (when there is a voice) the spoken hook together; on-screen captions are at most 2 lines of 3–5 words with key words in a second colour; shorter beats longer; the story comes first. Use its "No AI tells" list on the caption and on every on-screen line: no "it's not X, it's Y", no "no X, no Y, no Z" lists, no em dashes, no one-sentence-per-line posts, no engagement bait ("Agree?", "Thoughts?"). The closing question must be a real one a trade owner can answer. If `social-post-writer` isn't installed, this skill covers the caption and titles on its own.
 - **Kai's rules win over the skills.** If a skill suggests a stat, a number, a result, a testimonial, a guarantee, a "DM me" or a call to book, leave it out (sections 2 and 2b). The social skill also says to create posts as drafts and wait for approval; Kai's standing approval (top of this file) already covers the nightly post, so schedule it as section 6 says. Keep the caption format in section 6: 2–3 short lines, a question for comments, 5 hashtags.
 - If a skill isn't available in the session, say so in the morning message and write the hook and caption by hand to the same rules. Don't skip the video.
+
+## 2d. Kai's animation skills (uploaded Nov 11, 2026): use them, or take inspiration from them
+
+Kai: "i just uploaded a new skill set ... i want you to use these / Take inspiration from them." Six skills in the `animation-skills` plugin. Load one with the Skill tool (`animation-skills:<name>`) and read its SKILL.md before using it; each comes with a working engine or template. Rotate them like the video types in 2b-2, and mix in your own formats too.
+
+| Skill | What it makes | How it fits here |
+|---|---|---|
+| `zach-d-films` | 3D cartoon "what if / could X" short: procedural people and props, slow-motion impacts, whip cuts, 1–3 word captions | A "what if" about a painter's website, search or missed call. Built around a voiceover: while voice is on hold, drive it with captions only. |
+| `stick-figure` | Bright stick-figure explainer world, constant camera motion, 1–2 word captions, cartoon sound | Trade-life moments and homeowner POV stories. Also voiceover-timed: captions only while voice is on hold. Its setup downloads about 1 GB of voice models; skip the voice part. |
+| `minimalistic-graphics` | Black-and-white line art, one dot, one quiet line that swaps to a second | A single thought or hot take (type 4). |
+| `map-route` | 3D white city, a route drawing itself, a pin drop, an ETA card | "Being found": the homeowner's route to a painter, who shows up on the map. |
+| `breakdown` | 3D exploded view of a phone with labels on each layer | "What's inside a website that gets the call" or a missed call taken apart. |
+| `graph` | A line graph drawing itself while a number counts up | **Only with real numbers** (the skill says never invent data, and so do Kai's rules). Fine for Horizon's own real social numbers from `log.md`; never a made-up client result. |
+
+- These skills' engines render their own video. Either use the engine and then run the result through the same gates (1080×1920, 15–30 s, zone overlay, loudness, no black frames, plum end card with the logo), or borrow the look and build it in the kit's canvas format. Say in `brief.md` which skill was used or borrowed from.
+- All of sections 2, 2b, 2b-2 and 4 still apply: no invented stats or results, the subject is something Horizon Scales does, no pitch, frame safety. Don't use any skill's ElevenLabs option (under 18).
+- If the plugin isn't loaded in a night's session, say so in the morning message and build in the kit as usual.
+
+## 3b. Sound (Kai, Nov 11, 2026: "You kind of keep using the same beeps and stuff for each video ... I don't think it sounds very good anyway.")
+
+- **Stop using the synth "UI" sounds as the soundtrack:** no `S.blip`, `S.pop`, `S.tick`, `S.click`, `S.swipe` on every card change, and no all-synth band. That set made every video sound the same.
+- **Music comes from real sampled instruments:** write the parts as notes in `music.json` and render them with `python3 ../../kit/sound/sf_render.py music.json audio/band.wav` (General MIDI SoundFont: pianos, guitars, basses, strings, brass, woodwinds, mallets, accordion, banjo, fiddle, steel drums, and several real drum kits). Load the WAV in `score.mjs` with `S.load(...)` on its own bus and let `score.mjs` do only the mix and mastering. The script's docstring lists the instrument and drum numbers.
+- **A different band every night.** Read `log.md` and pick a lead instrument, a rhythm section and a tempo that haven't been used in the last 7 videos (for example: nylon guitar + upright bass + brush kit; piano + strings; electric piano + finger bass; accordion + tuba; steel drums + congas; banjo + fiddle; muted trumpet + jazz kit). Write the band in the log line.
+- **Hits on changes use the band, not beeps:** a drum fill, a cymbal, a bass slide, a chord stab, a triangle or wood block from the drum kit. Sound effects only where the picture has a real-world sound (a phone ringing, a door, a car passing), at most three kinds per video, and never the same effect set two nights running.
+- Keep the old rules: clear hits on card changes, nothing "overdramatic cinematic", −14 LUFS, true peak ≤ −1 dBTP.
+- Claude can't hear the result. Check it by measurement (`audio.mjs check`), keep arrangements simple (three or four parts), and say in the morning message which band was used so Kai can say what he likes.
 
 ## 3. Style rules (from Kai's feedback)
 

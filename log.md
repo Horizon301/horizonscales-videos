@@ -45,6 +45,7 @@ Nov 11 pull (nightly run): TikTok and Instagram numbers for the rows above are u
 
 ## Tests
 - **Test 1 · AI voice vs. no voice** · started Nov 11 · alternate nights (even count of nightly videos = VOICE, odd = TEXT), both with a direct-question hook · ends when each arm has 3 counted videos · result: –
+- **Sound and animation skills (Kai, Nov 11 evening):** music now comes from real sampled instruments (`kit/sound/sf_render.py`), a different band every night, no more synth beeps on every change (RUNBOOK 3b). Six animation skills to use or borrow from: zach-d-films, stick-figure, minimalistic-graphics, map-route, breakdown, graph (RUNBOOK 2d). #1–#14 were all made with the old synth sounds.
 - **Test 1 ON HOLD (Kai, Nov 11 afternoon):** Kai doesn't like the Kokoro Michael voice ("talks slow and kinda stutters") or the other Kokoro voices he heard (Puck, Fenrir, Heart). He asked for ElevenLabs, which its terms don't allow under 18. Until Kai picks a voice he can use, every nightly video is TEXT (no voice).
 - Test 2 (planned): question hook vs. bold-statement hook.
 - **Rule change (Kai, Nov 11):** one idea per video; no more three-leaks-three-fixes lists; story first, explaining last (RUNBOOK section 2b). Pulled videos don't count toward the VOICE/TEXT alternation: after #12 there is 1 nightly video, so the next night is TEXT.
