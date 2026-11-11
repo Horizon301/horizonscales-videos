@@ -38,7 +38,7 @@ Read this whole file before starting. The rules here are Kai's, not suggestions.
   1. **They can't find you** → fix: ads.
   2. **Your website doesn't get the call** (they land on it and leave) → fix: a website built to get the call.
   3. **You miss the call on a job** → fix: an AI receptionist that picks up.
-  Not every video has to use all three, but every video must make sense to a **trade owner**, not to marketers or AI people.
+  **Use one of these per video, never all three (see section 2b).** Every video must make sense to a **trade owner**, not to marketers or AI people.
 - **Tag line:** "You run the business. We help it scale."
 - **Brand:** plum `rgb(28,2,40)`, coral `#F0645A`, light coral `#F5A39A`, cream `#F6F0E6`, sun yellow `#FFD27A`. Logo: `kit/assets/logo-long.png` (wide, on dark plum: draw it with `globalCompositeOperation = 'lighten'` so its dark box never shows), `kit/assets/badge.png` (round), `kit/assets/wordmark.png` (text only).
 - **Every video ends on the plum end card:** logo, "You run the business." (cream), "We help it scale." (light coral), "Websites · Ads · AI receptionists", "horizonscales.com". Only the logo and the plum end card stay the same between videos.
@@ -53,6 +53,15 @@ Read this whole file before starting. The rules here are Kai's, not suggestions.
 - **No pitching or outreach:** no "DM me", no "book a call with me", no tagging businesses. Captions may ask a question for comments.
 - **Original work only:** no copyrighted songs, characters, logos, games or film scenes. Music is synthesized in `score.mjs`. Don't recreate a famous game, show, ad or song.
 - **Voice follows the test plan (section 0).** On voice nights the narration is the AI voice (Kokoro `am_michael`, made with `kit/voice/make_vo.py`), never a real person's voice or a clone, and the post turns on every app's AI-content label. On text nights there is no voice.
+
+## 2b. One idea per video (Kai, Nov 11, 2026: "kinda repetitive, just explaining the same thing over and over")
+
+Kai pulled video #11 ("The Empty Week") because it was the same script as most earlier videos. These rules come before the story notes in section 1:
+- **Never run the "three leaks, three fixes" list again.** No video walks through not found → website → missed call with a fix for each. That includes renamed versions (three gaps, three pits, three places, three steps).
+- **One idea per video:** one leak, one moment, one tip or one joke, and at most one service named as the fix. Rotate which one from night to night (ads, website, AI receptionist) and check `log.md` so the same idea isn't used two nights running.
+- **No problem → fix → problem → fix pattern inside a video.** Tell one small story with a beginning, a turn and a payoff.
+- **Entertain or surprise first, explain last.** Show it, don't list it. At most one line says what Horizon Scales does, and it comes at the end.
+- A pulled video doesn't count toward the test-arm alternation in section 0: count only nightly videos that stayed scheduled or were posted.
 
 ## 3. Style rules (from Kai's feedback)
 

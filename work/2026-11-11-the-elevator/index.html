@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Elevator — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #1C0228; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, FLOORS, T, CAPS, PUNCH } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, hash, mix, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, TAU = Math.PI * 2;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', ink: '#1C0228', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A', warm: '#F3D9B1', dark: '#2B1740', slab: '#3A2450' };
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+
+// frame safety (Kai, Nov 5): title at the top, floor display under it, the car left of centre, captions centred at x 500
+// around y 1345, nothing that matters right of x 864 below y 920 or under y 1630.
+const FH = 560, CY = 900, BOT = (FLOORS - 1) * FH;
+const SHX0 = 150, SHX1 = 400, CARX = 275, CARW = 216, CARH = 380, ROOMX = 400;
+
+// where the car is (world y of its centre). Down: slow start, fast middle, hard stop. Up: quick.
+function carY(t) {
+  if (t < T.down0) return 0;
+  if (t < T.up0) { const d = t - T.down1; return BOT * ease.inOutCubic(seg(t, T.down0, T.down1)) + (d >= 0 ? 26 * Math.exp(-d * 7) * Math.sin(d * 22) : 0); }
+  const d = t - T.up1; return BOT * (1 - ease.inOutCubic(seg(t, T.up0, T.up1))) - (d >= 0 ? 20 * Math.exp(-d * 7) * Math.sin(d * 22) : 0);
+}
+const speed = t => (carY(t + 0.01) - carY(t - 0.01)) / 0.02;
+
+// ── a small desk with a phone on it
+function desk(x, y, { ring = 0, t = 0, you = 0, zzz = false, lit = 1 } = {}) {
+  ctx.save(); ctx.translate(x, y);
+  ctx.fillStyle = mix('#8A5A3C', '#3B2440', 1 - lit); rr(-58, -64, 116, 14, 5); ctx.fill(); ctx.fillRect(-48, -50, 10, 50); ctx.fillRect(38, -50, 10, 50);
+  const sh = ring ? 0.12 * Math.sin(t * 46) : 0;
+  ctx.save(); ctx.translate(0, -64); ctx.rotate(sh);
+  rr(-19, -64, 38, 64, 8); ctx.fillStyle = mix('#2A1438', '#120818', 1 - lit); ctx.fill();
+  rr(-14, -58, 28, 44, 4); ctx.fillStyle = ring ? C.sun : mix('#6E5A86', '#2E2140', 1 - lit); ctx.fill();
+  ctx.restore();
+  if (ring) {
+    ctx.strokeStyle = C.coral; ctx.lineWidth = 6; ctx.lineCap = 'round'; ctx.globalAlpha = 0.5 + 0.5 * Math.sin(t * 20);
+    for (let j = 0; j < 2; j++) { const r = 44 + j * 20; ctx.beginPath(); ctx.arc(0, -98, r, Math.PI * 1.08, Math.PI * 1.4); ctx.stroke(); ctx.beginPath(); ctx.arc(0, -98, r, -Math.PI * 0.4, -Math.PI * 0.08); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  if (zzz) {
+    ctx.font = '700 34px "Poppins"'; ctx.textAlign = 'center'; ctx.fillStyle = '#9C8AB4';
+    for (let j = 0; j < 3; j++) { const p = (t * 0.5 + j / 3) % 1; ctx.globalAlpha = Math.sin(p * Math.PI) * 0.9; ctx.fillText('z', 30 + p * 46 + j * 4, -140 - p * 70); }
+    ctx.globalAlpha = 1;
+  }
+  if (you > 0) {                                    // a small yellow tag over the desk
+    const k = clamp(sp(you, { freq: 3.2, damp: 0.55 }), 0, 1.25);
+    ctx.save(); ctx.translate(0, -196); ctx.scale(k, k);
+    rr(-62, -30, 124, 60, 14); ctx.fillStyle = C.sun; ctx.fill(); ctx.beginPath(); ctx.moveTo(-12, 28); ctx.lineTo(12, 28); ctx.lineTo(0, 46); ctx.closePath(); ctx.fill();
+    ctx.font = '700 36px "Poppins"'; ctx.textAlign = 'center'; ctx.fillStyle = C.ink; ctx.fillText('YOU', 0, 13); ctx.restore();
+  }
+  ctx.restore();
+}
+function cobweb(x, y, s, flip) {
+  ctx.save(); ctx.translate(x, y); ctx.scale(flip ? -s : s, s); ctx.strokeStyle = 'rgba(214,200,232,0.34)'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+  for (let a = 0; a <= 4; a++) { const th = (a / 4) * Math.PI / 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(th) * 120, Math.sin(th) * 120); ctx.stroke(); }
+  for (let r = 34; r <= 110; r += 26) { ctx.beginPath(); for (let a = 0; a <= 4; a++) { const th = (a / 4) * Math.PI / 2, q = r * (a % 4 === 0 ? 1 : 0.9); a === 0 ? ctx.moveTo(Math.cos(th) * q, Math.sin(th) * q) : ctx.lineTo(Math.cos(th) * q, Math.sin(th) * q); } ctx.stroke(); }
+  ctx.restore();
+}
+
+// ── one floor of the building. top = screen y of the floor's top edge
+function room(i, top, t) {
+  const d = clamp(i / 10), wall = mix(C.warm, C.dark, d), bot = top + FH;
+  ctx.fillStyle = wall; ctx.fillRect(ROOMX, top, 760, FH);
+  ctx.fillStyle = mix('#C99B6B', '#1D0F2C', d); ctx.fillRect(ROOMX, bot - 70, 760, 70);                       // the floor
+  ctx.fillStyle = mix('#E8C99A', '#34204C', d); ctx.fillRect(ROOMX, bot - 76, 760, 8);                        // skirting
+  // the page number painted on the back wall
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = mix('#E3C08E', '#3F2A58', d); ctx.font = '700 230px "Poppins"'; ctx.fillText(String(i + 1), 660, top + 330);
+  ctx.font = '600 40px "Poppins"'; ctx.letterSpacing = '10px'; ctx.fillText('PAGE', 664, top + 122); ctx.letterSpacing = '0px';
+  if (i === 0) {                                    // the top floor: bright, phones ringing
+    const g = ctx.createRadialGradient(660, top + 200, 40, 660, top + 200, 560); g.addColorStop(0, 'rgba(255,245,220,0.55)'); g.addColorStop(1, 'rgba(255,245,220,0)'); ctx.fillStyle = g; ctx.fillRect(ROOMX, top, 760, FH);
+    desk(618, bot - 70, { ring: 1, t }); desk(764, bot - 70, { ring: 1, t: t + 0.37 });
+    if (t >= T.up1) { const x = lerp(CARX, 472, ease.outCubic(seg(t, T.up1, T.out1))); desk(x, bot - 70, { ring: t >= T.ring ? 1 : 0, t, you: t - T.ring }); }
+  } else if (i === FLOORS - 1) {                    // the bottom floor: one flickering bulb, a quiet phone
+    const fl = 0.62 + 0.38 * (hash(Math.floor(t * 14), 3) > 0.25 ? 1 : 0.35) * (0.85 + 0.15 * Math.sin(t * 31));
+    const g = ctx.createRadialGradient(640, top + 150, 10, 640, top + 260, 430); g.addColorStop(0, `rgba(255,222,150,${0.55 * fl})`); g.addColorStop(1, 'rgba(255,222,150,0)'); ctx.fillStyle = g; ctx.fillRect(ROOMX, top, 760, FH);
+    ctx.strokeStyle = '#0E0616'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(640, top + 36); ctx.lineTo(640, top + 132); ctx.stroke();
+    ctx.fillStyle = `rgba(255,226,160,${fl})`; ctx.beginPath(); ctx.arc(640, top + 150, 20, 0, TAU); ctx.fill();
+    cobweb(ROOMX, top + 36, 1.5, false); cobweb(1080, top + 36, 1.2, true);
+    rr(468, top + 236, 344, 62, 10); ctx.fillStyle = '#120818'; ctx.fill(); ctx.strokeStyle = 'rgba(246,240,230,0.5)'; ctx.lineWidth = 3; ctx.stroke();
+    ctx.font = '600 32px "Poppins"'; ctx.letterSpacing = '4px'; ctx.fillStyle = C.cream; ctx.fillText('YOUR BUSINESS', 642, top + 279); ctx.letterSpacing = '0px';
+    if (t < T.in1) { const x = lerp(600, CARX, ease.inOutCubic(seg(t, T.in0, T.in1))); desk(x, bot - 70, { zzz: t < T.ads, t, lit: 0.85 }); }
+  } else {                                          // everything in between: storage, dust, the odd cobweb
+    const h1 = hash(i, 1), h2 = hash(i, 2);
+    ctx.fillStyle = mix('#B98455', '#241336', d);
+    for (let k = 0; k < 2 + Math.floor(h1 * 3); k++) { const bw = 70 + hash(i * 7 + k, 4) * 70, bx = 470 + hash(i * 7 + k, 5) * 420; ctx.fillRect(bx, bot - 70 - bw * 0.8, bw, bw * 0.8); }
+    if (i > 3) cobweb(h2 > 0.5 ? ROOMX : 1080, top + 36, 1 + h1 * 0.6, h2 <= 0.5);
+  }
+  ctx.fillStyle = C.slab; ctx.fillRect(-20, top, 1120, 36);                                                     // the slab above this floor
+  ctx.fillStyle = 'rgba(0,0,0,0.18)'; ctx.fillRect(ROOMX, top + 36, 760, 14);
+}
+
+function world(t) {
+  const yc = carY(t), sy = wy => CY + (wy - yc), v = speed(t);
+  ctx.fillStyle = '#12061C'; ctx.fillRect(-20, -20, 1120, 1960);
+  // sky and roof above the top floor
+  const roof = sy(-FH / 2);
+  if (roof > -20) {
+    const g = ctx.createLinearGradient(0, roof - 900, 0, roof); g.addColorStop(0, '#1C0228'); g.addColorStop(0.55, '#5A1F4E'); g.addColorStop(1, '#F0645A'); ctx.fillStyle = g; ctx.fillRect(-20, roof - 1000, 1120, 1000);
+    ctx.fillStyle = 'rgba(255,210,122,0.9)'; ctx.beginPath(); ctx.arc(820, roof + 10, 120, Math.PI, TAU); ctx.fill();   // the sun going down behind the roof
+    ctx.fillStyle = C.slab; ctx.fillRect(-20, roof - 26, 1120, 30); ctx.fillRect(SHX0 - 20, roof - 86, SHX1 - SHX0 + 40, 64);
+  }
+  // ground under the bottom floor
+  const base = sy(BOT + FH / 2);
+  if (base < 1940) { ctx.fillStyle = '#0D0414'; ctx.fillRect(-20, base, 1120, 2000); ctx.fillStyle = '#241336'; ctx.fillRect(-20, base, 1120, 30); }
+  const i0 = Math.max(0, Math.floor((yc - 1200) / FH)), i1 = Math.min(FLOORS - 1, Math.ceil((yc + 1400) / FH));
+  for (let i = i0; i <= i1; i++) room(i, sy(i * FH - FH / 2), t);
+  // outer wall and the shaft
+  ctx.fillStyle = '#241336'; ctx.fillRect(-20, Math.max(-20, roof), SHX0 + 20, Math.min(1960, base) - Math.max(-20, roof) + 20);
+  ctx.fillStyle = '#160A22'; ctx.fillRect(SHX0, Math.max(-20, roof - 60), SHX1 - SHX0, Math.min(1960, base) - Math.max(-20, roof - 60));
+  ctx.fillStyle = '#3A2450'; ctx.fillRect(SHX0, -20, 8, 1960); ctx.fillRect(SHX1 - 8, -20, 8, 1960);
+  for (let i = i0; i <= i1 + 1; i++) { const y = sy(i * FH - FH / 2); ctx.fillStyle = '#4A3166'; ctx.fillRect(SHX0 + 8, y + 8, SHX1 - SHX0 - 16, 12); }       // rungs that fly past
+  ctx.strokeStyle = '#6E5A86'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(CARX - 36, -20); ctx.lineTo(CARX - 36, CY - CARH / 2); ctx.moveTo(CARX + 36, -20); ctx.lineTo(CARX + 36, CY - CARH / 2); ctx.stroke();
+  // speed streaks while the car is moving fast
+  const sv = clamp(Math.abs(v) / 6000);
+  if (sv > 0.05) { ctx.fillStyle = `rgba(246,240,230,${0.16 * sv})`; for (let k = 0; k < 22; k++) { const x = ROOMX + 20 + hash(k, 8) * 640, len = 160 + hash(k, 9) * 420 * sv, y = ((hash(k, 10) * 2400 - yc * 0.7) % 2400 + 2400) % 2400 - 240; ctx.fillRect(x, y, 5, len); } }
+  car(t, v);
+}
+
+function car(t, v) {
+  const top = CY - CARH / 2, lit = t >= T.ads, tilt = clamp(v / 9000, -1, 1) * 6;
+  ctx.save(); ctx.translate(CARX, CY + tilt);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 24 * SC; rr(-CARW / 2, -CARH / 2, CARW, CARH, 14); ctx.fillStyle = '#4A3166'; ctx.fill(); ctx.restore();
+  rr(-CARW / 2 + 12, -CARH / 2 + 74, CARW - 24, CARH - 88, 8); const g = ctx.createLinearGradient(0, -CARH / 2 + 74, 0, CARH / 2); g.addColorStop(0, '#FFF6E2'); g.addColorStop(1, '#EAD9BC'); ctx.fillStyle = g; ctx.fill();
+  ctx.fillStyle = 'rgba(74,49,102,0.25)'; ctx.fillRect(-CARW / 2 + 12, CARH / 2 - 30, CARW - 24, 16);
+  // header sign: dark until the ADS light comes on
+  const k = lit ? clamp(sp(t - T.ads, { freq: 3.2, damp: 0.55 }), 0, 1.2) : 0;
+  rr(-CARW / 2 + 12, -CARH / 2 + 12, CARW - 24, 52, 10); ctx.fillStyle = lit ? C.coral : '#2B1740'; ctx.fill();
+  if (lit) { ctx.save(); ctx.shadowColor = C.coral; ctx.shadowBlur = 30 * SC * (0.7 + 0.3 * Math.sin(t * 8)); rr(-CARW / 2 + 12, -CARH / 2 + 12, CARW - 24, 52, 10); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+    ctx.save(); ctx.translate(0, -CARH / 2 + 38); ctx.scale(k, k); ctx.font = '700 36px "Poppins"'; ctx.letterSpacing = '6px'; ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.fillText('ADS', 3, 13); ctx.letterSpacing = '0px'; ctx.restore(); }
+  else { ctx.fillStyle = '#6E5A86'; for (let j = -1; j <= 1; j++) { ctx.beginPath(); ctx.arc(j * 26, -CARH / 2 + 38, 5, 0, TAU); ctx.fill(); } }
+  ctx.restore();
+  if (t >= T.in1 && t < T.up1) desk(CARX, CY + tilt + CARH / 2 - 14, { t, lit: 1 });                             // your desk rides up in the car
+}
+
+// ── overlays: the question, the floor display, the captions
+function title(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, 640); g.addColorStop(0, 'rgba(28,2,40,0.96)'); g.addColorStop(0.62, 'rgba(28,2,40,0.86)'); g.addColorStop(1, 'rgba(28,2,40,0)');
+  ctx.fillStyle = g; ctx.fillRect(-20, -20, 1120, 660);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 38px "Poppins"'; ctx.letterSpacing = '9px'; ctx.fillStyle = C.sun; ctx.fillText('PAINTERS:', 544, 228); ctx.letterSpacing = '0px';
+  ctx.font = '800 60px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('Where do you show up', 540, 304);
+  ctx.fillText('when someone searches?', 540, 378);
+}
+function display(t) {
+  const yc = carY(t), v = speed(t), n = clamp(Math.round(yc / FH) + 1, 1, FLOORS), moving = Math.abs(v) > 60;
+  const hit = Math.max(0, 1 - (t - T.down1) * 2.5) * (t >= T.down1 ? 1 : 0) + Math.max(0, 1 - (t - T.up1) * 2.5) * (t >= T.up1 ? 1 : 0);
+  ctx.save(); ctx.translate(540, 506); const s = 1 + 0.1 * hit; ctx.scale(s, s);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 20 * SC; ctx.shadowOffsetY = 8 * SC; rr(-215, -64, 430, 128, 26); ctx.fillStyle = '#0E0416'; ctx.fill(); ctx.restore();
+  rr(-215, -64, 430, 128, 26); ctx.strokeStyle = 'rgba(246,240,230,0.28)'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.font = '600 40px "Poppins"'; ctx.letterSpacing = '8px'; ctx.fillStyle = 'rgba(246,240,230,0.78)'; ctx.fillText('PAGE', -176, 16); ctx.letterSpacing = '0px';
+  ctx.textAlign = 'center'; ctx.font = '700 92px "Poppins"'; ctx.fillStyle = n === 1 ? C.sun : C.coral; ctx.save(); ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 18 * SC; ctx.fillText(String(n), 62, 33); ctx.restore();
+  if (moving) { const dn = v > 0, a = 0.45 + 0.55 * Math.sin(t * 16); ctx.globalAlpha = a; ctx.fillStyle = C.cream; ctx.beginPath(); if (dn) { ctx.moveTo(146, -14); ctx.lineTo(186, -14); ctx.lineTo(166, 20); } else { ctx.moveTo(146, 18); ctx.lineTo(186, 18); ctx.lineTo(166, -16); } ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = clamp(sp(t - c.t0, { freq: 3.0, damp: 0.66 }), 0, 1.15), out = 1 - seg(t, c.t1 - 0.1, c.t1), two = c.lines.length === 2;
+  ctx.font = '700 62px "Nunito"'; const tw = Math.max(...c.lines.map(l => ctx.measureText(l).width)), w = tw + 96, h = two ? 190 : 124;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1345 + (1 - Math.min(1, k)) * 24); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.45)'; ctx.shadowBlur = 22 * SC; ctx.shadowOffsetY = 8 * SC; rr(-w / 2, -h / 2, w, h, 30); ctx.fillStyle = 'rgba(18,4,26,0.92)'; ctx.fill(); ctx.restore();
+  rr(-w / 2, -h / 2, w, h, 30); ctx.strokeStyle = 'rgba(245,163,154,0.55)'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.cream;
+  if (two) { ctx.fillText(c.lines[0], 0, -16); ctx.fillText(c.lines[1], 0, 58); } else ctx.fillText(c.lines[0], 0, 21);
+  ctx.restore();
+}
+
+// ── end: the elevator doors close on the scene and carry the plum end card
+let LOGO;
+function endCard(t) {
+  const k = ease.inOutCubic(seg(t, T.doors, T.shut)), x = 560 * k;
+  ctx.fillStyle = C.plum; ctx.fillRect(-20, -20, x, 1960); ctx.fillRect(1100 - x, -20, x, 1960);
+  ctx.fillStyle = `rgba(245,163,154,${0.5 * (1 - seg(t, T.shut - 0.05, T.shut + 0.25))})`; ctx.fillRect(x - 26, -20, 6, 1960); ctx.fillRect(1100 - x + 20, -20, 6, 1960);
+  if (t < T.logo) return;
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 760), ga = seg(t, T.shut - 0.1, T.shut + 0.4); glow.addColorStop(0, `rgba(240,100,90,${0.18 * ga})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(-20, -20, 1120, 1960);
+  const rise = (t0, fn) => { const q = clamp(sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.4); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  if (k >= 0.86) rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = '800 66px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = '800 66px "Nunito"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 968); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1174); });
+}
+
+function zoom(t) {
+  let z = 1 + 0.035 * (1 - ease.outCubic(seg(t, 0, 0.9))) + 0.012 * (t / DUR);
+  for (const p of PUNCH) { const d = t - p; if (d >= 0 && d < 1) z += 0.022 * Math.exp(-d * 6); }
+  if (t >= T.shut) z += 0.006 * (t - T.shut);
+  return z;
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 1.2;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  const z = zoom(t), shake = (t >= T.down1 && t < T.down1 + 0.5 ? 14 * Math.exp(-(t - T.down1) * 9) * Math.sin((t - T.down1) * 70) : 0);
+  ctx.translate(540, 860 + shake); ctx.scale(z, z); ctx.translate(-540, -860);
+  if (t < T.shut) { world(t); title(t); display(t); CAPS.forEach(c => caption(c, t)); }
+  if (t >= T.doors) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['800 60px "Nunito"', '700 62px "Nunito"', '600 32px "Poppins"', '700 92px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
