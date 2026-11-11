@@ -4,7 +4,7 @@ This repo holds everything the nightly run needs. Each night (about 1:30 AM Moun
 
 Read this whole file before starting. The rules here are Kai's, not suggestions.
 
-**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook and caption skills) → 5. make → 6. save and schedule → 7. record and report.
+**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook, caption and social skills) → 5. make → 6. save and schedule → 7. record and report.
 
 ---
 
@@ -69,7 +69,8 @@ Kai pulled video #11 ("The Empty Week") because it was the same script as most e
 Kai: "when doing this videos i want you to use these skills: /viral-hook-creator /social-post-writer". Load each with the Skill tool (they may be listed as `anthropic-skills:viral-hook-creator` and `anthropic-skills:social-post-writer`) before writing, and follow them:
 - **`viral-hook-creator` → the hook.** Use it before you settle the concept. Write several hook options with it, pick the strongest one that is a direct question to the trade owner (Test 1 needs a question hook on both arms), and note in `brief.md` which pattern it uses and the options you rejected.
 - **`social-post-writer` → the caption and titles.** Use it for the post text, the TikTok title, the YouTube Shorts title and the Facebook Reel title in section 6, in the same voice as the hook.
-- **Kai's rules win over the skills.** If a skill suggests a stat, a number, a result, a testimonial, a guarantee, a "DM me" or a call to book, leave it out (sections 2 and 2b). Keep the caption format in section 6: 2–3 short lines, a question for comments, 5 hashtags.
+- **`marketing-skills:social` → the whole post (Kai, Nov 11 afternoon: "also use this one").** Load it every night as well. Read its `references/short-form-video.md` before planning the video, and follow its short-form rules: the first second carries a visual hook, the hook words and (when there is a voice) the spoken hook together; on-screen captions are at most 2 lines of 3–5 words with key words in a second colour; shorter beats longer; the story comes first. Use its "No AI tells" list on the caption and on every on-screen line: no "it's not X, it's Y", no "no X, no Y, no Z" lists, no em dashes, no one-sentence-per-line posts, no engagement bait ("Agree?", "Thoughts?"). The closing question must be a real one a trade owner can answer. If `social-post-writer` isn't installed, this skill covers the caption and titles on its own.
+- **Kai's rules win over the skills.** If a skill suggests a stat, a number, a result, a testimonial, a guarantee, a "DM me" or a call to book, leave it out (sections 2 and 2b). The social skill also says to create posts as drafts and wait for approval; Kai's standing approval (top of this file) already covers the nightly post, so schedule it as section 6 says. Keep the caption format in section 6: 2–3 short lines, a question for comments, 5 hashtags.
 - If a skill isn't available in the session, say so in the morning message and write the hook and caption by hand to the same rules. Don't skip the video.
 
 ## 3. Style rules (from Kai's feedback)
