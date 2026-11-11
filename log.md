@@ -48,3 +48,4 @@ Nov 11 pull (nightly run): TikTok and Instagram numbers for the rows above are u
 - Test 2 (planned): question hook vs. bold-statement hook.
 
 ## Nightly runs
+- Nov 11 · #11 empty-week · **VOICE** · a painter's whiteboard schedule for next week with "open" on every day; three job notes try to reach the board and slip away (drifts past / lands and falls off / rings and drops); an ADS, WEBSITE and AI RECEPTIONIST magnet each make one stick; checks on "Found. Called. Booked. That's the aim."; an eraser wipes to the end card · whiteboard: marker grid, handwriting (Patrick Hand) + small Poppins labels, yellow sticky notes, coral pill magnets, captions on masking tape · light funk groove (100 BPM, organ stabs, cowbell) under the Michael AI voice · "Painters: why is next week still empty?" · 25.8 s · scheduled Nov 11, 6:00 PM MT (10 AM was taken by #10, so the best hour at least 6 h away) · Metricool post id 424144169, uuid 8595979393935754711, AI-content labels on
