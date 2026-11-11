@@ -19,7 +19,7 @@ export default function score(S) {
   const SR = S.SR, N = s => Math.max(1, Math.round(s * SR));
   const env = (len, f) => { const e = new Float32Array(len); for (let i = 0; i < len; i++) e[i] = f(i / SR, len / SR); return e; };
 
-  VO.forEach(([t0], i) => vo.add(S.load(join(HERE, 'audio', `vo_${i}.wav`)), t0, { gain: 1 }));
+  if (process.env.VOICE === '1') VO.forEach(([t0], i) => vo.add(S.load(join(HERE, 'audio', `vo_${i}.wav`)), t0, { gain: 1 }));   // posted WITHOUT the voice (Kai, Nov 11: didn't like it); VOICE=1 puts it back
 
   const ding = (t, g = 1, hi = false) => { vib.add(S.bell(hi ? 'A6' : 'E6', 1.4, { decay: 0.9 }), t, { gain: 0.9 * g }); vib.add(S.bell(hi ? 'F#6' : 'C#6', 1.4, { decay: 0.9 }), t + 0.16, { gain: 0.7 * g }); };
   const CH = [['D3', 'maj7', 'D1', 'A1'], ['E3', 'min7', 'E1', 'B1'], ['A2', '7', 'A1', 'E1'], ['D3', 'maj9', 'D1', 'A1']];

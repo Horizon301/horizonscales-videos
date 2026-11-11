@@ -1,5 +1,5 @@
 # Video #12 — The Elevator
-*Horizon Scales · 2026-11-11 · made the same morning after Kai pulled #11 · Test 1 arm: **VOICE** (AI voice, Kokoro `am_michael`) · 22.5 s · 1080×1920*
+*Horizon Scales · 2026-11-11 · made the same morning after Kai pulled #11 · **Posted with NO voice (TEXT arm):** it was built with the Michael AI voice, but Kai said that afternoon the voice "talks slow and kinda stutters", so the narration was removed. The on-screen captions carry every line. `VOICE=1 sh build.sh` puts the narration back. · 22.5 s · 1080×1920*
 
 - **Why this one:** Kai (Nov 11) said the videos were repetitive, "just explaining the same thing over and over". So: one idea (you can't be found), one small story, almost no explaining, no list of leaks and fixes.
 - **Idea:** search results are a building. The phones ring on the top floor (page 1). The elevator goes looking for your business and keeps going down, all the way to a dusty basement on page 47. Ads are the ride back up.
