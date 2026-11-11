@@ -10,6 +10,8 @@
 - Entertain or surprise first, explain last; at most one line about what Horizon Scales does, at the end.
 - Already written into `RUNBOOK.md` section 2b in the repo, so the nightly run follows it.
 
+**Skills for the nightly videos (Kai, Nov 11, Confirmed):** use the `viral-hook-creator` skill for every hook and the `social-post-writer` skill for every caption and title. Kai's content rules still win over anything a skill suggests (no stats, results, guarantees or pitches). Written into `RUNBOOK.md` section 2c. Videos #11 and #12 were made before this and did not use the skills.
+
 **Video library rows:**
 
 | # | Title | Length | Status | Source |

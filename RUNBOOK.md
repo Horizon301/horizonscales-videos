@@ -4,7 +4,7 @@ This repo holds everything the nightly run needs. Each night (about 1:30 AM Moun
 
 Read this whole file before starting. The rules here are Kai's, not suggestions.
 
-**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules → 5. make → 6. save and schedule → 7. record and report.
+**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook and caption skills) → 5. make → 6. save and schedule → 7. record and report.
 
 ---
 
@@ -62,6 +62,14 @@ Kai pulled video #11 ("The Empty Week") because it was the same script as most e
 - **No problem → fix → problem → fix pattern inside a video.** Tell one small story with a beginning, a turn and a payoff.
 - **Entertain or surprise first, explain last.** Show it, don't list it. At most one line says what Horizon Scales does, and it comes at the end.
 - A pulled video doesn't count toward the test-arm alternation in section 0: count only nightly videos that stayed scheduled or were posted.
+
+## 2c. Skills to use every night (Kai, Nov 11, 2026)
+
+Kai: "when doing this videos i want you to use these skills: /viral-hook-creator /social-post-writer". Load each with the Skill tool (they may be listed as `anthropic-skills:viral-hook-creator` and `anthropic-skills:social-post-writer`) before writing, and follow them:
+- **`viral-hook-creator` → the hook.** Use it before you settle the concept. Write several hook options with it, pick the strongest one that is a direct question to the trade owner (Test 1 needs a question hook on both arms), and note in `brief.md` which pattern it uses and the options you rejected.
+- **`social-post-writer` → the caption and titles.** Use it for the post text, the TikTok title, the YouTube Shorts title and the Facebook Reel title in section 6, in the same voice as the hook.
+- **Kai's rules win over the skills.** If a skill suggests a stat, a number, a result, a testimonial, a guarantee, a "DM me" or a call to book, leave it out (sections 2 and 2b). Keep the caption format in section 6: 2–3 short lines, a question for comments, 5 hashtags.
+- If a skill isn't available in the session, say so in the morning message and write the hook and caption by hand to the same rules. Don't skip the video.
 
 ## 3. Style rules (from Kai's feedback)
 
