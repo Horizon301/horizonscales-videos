@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Empty Week — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Patrick Hand"; src: url(fonts/PatrickHand.woff2) format("woff2"); }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #FBFBF8; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, DOT, LS, FAIL, FS, LAND, PAY, CHECK, AIM, END, T, ROWS, JOBS, PILLS, CAPS, PUNCH, INTRO } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, rng, fbm, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, TAU = Math.PI * 2;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { board: '#FBFBF8', ink: '#2A1438', plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A', mute: '#8E839A', tape: '#F1DDA4', open: '#B9B2C2' };
+const HAND = '"Patrick Hand"';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+
+// frame safety (Kai, Nov 5): title at the top (y 190–380), week grid x 140–860, captions centred at x 500 around y 1350,
+// nothing that matters right of x 864 below y 920 or under y 1630.
+const GX0 = 140, GX1 = 860, GY0 = 500, RH = 128, DAYX = 300, SLOTX = 580, HOMEX = 736;
+const DAYS = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+const rowY = i => GY0 + RH * i + RH / 2;
+const TILT = [-0.035, 0.03, -0.02];
+
+// a slightly wobbly marker line, drawn up to fraction k
+function mline(x0, y0, x1, y1, k = 1, seed = 0, amp = 2) {
+  if (k <= 0) return;
+  const len = Math.hypot(x1 - x0, y1 - y0), n = Math.max(2, Math.ceil(len / 14)), nx = -(y1 - y0) / len, ny = (x1 - x0) / len;
+  ctx.beginPath();
+  for (let i = 0; i <= n; i++) {
+    const f = Math.min(i / n, k), o = amp * Math.sin(f * len * 0.045 + seed);
+    const x = lerp(x0, x1, f) + nx * o, y = lerp(y0, y1, f) + ny * o;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    if (i / n >= k) break;
+  }
+  ctx.stroke();
+}
+function rr(x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
+function tick(cx, cy, s, k) {                       // a check mark drawn up to fraction k
+  if (k <= 0) return;
+  const a = Math.min(1, k * 2.2), c = clamp((k - 0.45) / 0.55);
+  ctx.beginPath(); ctx.moveTo(cx - 12 * s, cy + 1 * s); ctx.lineTo(cx - 12 * s + 9 * s * a, cy + 1 * s + 10 * s * a);
+  if (c > 0) ctx.lineTo(cx - 3 * s + 17 * s * c, cy + 11 * s - 22 * s * c);
+  ctx.stroke();
+}
+
+// ── the whiteboard
+let SMUDGE;
+function makeSmudge() {
+  SMUDGE = document.createElement('canvas'); SMUDGE.width = 135; SMUDGE.height = 240;
+  const g = SMUDGE.getContext('2d'), img = g.createImageData(135, 240);
+  for (let y = 0; y < 240; y++) for (let x = 0; x < 135; x++) {
+    const v = fbm(x * 0.035, y * 0.02, 4, 5), i = (y * 135 + x) * 4;
+    img.data[i] = 150; img.data[i + 1] = 130; img.data[i + 2] = 165; img.data[i + 3] = Math.max(0, v - 0.5) * 120;
+  }
+  g.putImageData(img, 0, 0);
+}
+function board(t) {
+  ctx.fillStyle = C.board; ctx.fillRect(-80, -80, 1240, 2080);
+  ctx.save(); ctx.imageSmoothingEnabled = true; ctx.globalAlpha = 0.5; ctx.drawImage(SMUDGE, -80, -80, 1240, 2080); ctx.restore();
+  const gx = -500 + 260 * Math.sin(t * 0.9), g = ctx.createLinearGradient(gx, 0, gx + 1500, 900);   // a slow sheen so the board is never still
+  g.addColorStop(0, 'rgba(255,255,255,0)'); g.addColorStop(0.5, 'rgba(255,255,255,0.9)'); g.addColorStop(0.62, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g; ctx.fillRect(-80, -80, 1240, 2080);
+  const v = ctx.createRadialGradient(540, 900, 600, 540, 900, 1300); v.addColorStop(0, 'rgba(60,40,80,0)'); v.addColorStop(1, 'rgba(60,40,80,0.16)');
+  ctx.fillStyle = v; ctx.fillRect(-80, -80, 1240, 2080);
+  // aluminium frame and marker tray: background only (danger zone)
+  const fr = (x, y, w, h, hor) => { const q = hor ? ctx.createLinearGradient(0, y, 0, y + h) : ctx.createLinearGradient(x, 0, x + w, 0); q.addColorStop(0, '#D9DCE1'); q.addColorStop(0.5, '#F2F3F5'); q.addColorStop(1, '#B9BDC4'); ctx.fillStyle = q; ctx.fillRect(x, y, w, h); };
+  fr(-80, -80, 126, 2080, false); fr(1034, -80, 126, 2080, false); fr(-80, -80, 1240, 136, true); fr(-80, 1800, 1240, 200, true);
+  ctx.fillStyle = 'rgba(40,20,60,0.10)'; ctx.fillRect(46, 56, 988, 6); ctx.fillRect(46, 56, 6, 1744);
+  ctx.fillStyle = '#AEB3BB'; ctx.fillRect(46, 1790, 988, 14);
+  rr(600, 1754, 190, 34, 17); ctx.fillStyle = C.ink; ctx.fill(); rr(600, 1754, 54, 34, 17); ctx.fillStyle = '#4A2E5E'; ctx.fill();
+  rr(380, 1754, 190, 34, 17); ctx.fillStyle = C.coral; ctx.fill(); rr(380, 1754, 54, 34, 17); ctx.fillStyle = '#C94A42'; ctx.fill();
+}
+
+function grid(t) {
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left';
+  ctx.font = '600 30px "Poppins"'; ctx.letterSpacing = '7px'; ctx.fillStyle = C.mute; ctx.fillText('NEXT WEEK', GX0 + 6, GY0 - 26); ctx.letterSpacing = '0px';
+  ctx.strokeStyle = 'rgba(42,20,56,0.82)'; ctx.lineWidth = 4.5; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  for (let i = 0; i <= 5; i++) mline(GX0, GY0 + RH * i, GX1, GY0 + RH * i + (i % 2 ? 3 : -2), 1, i * 1.7, 1.6);
+  mline(DAYX, GY0 - 4, DAYX + 3, GY0 + RH * 5 + 4, 1, 9, 1.4);
+  ctx.textAlign = 'center'; ctx.font = '600 38px "Poppins"'; ctx.fillStyle = C.ink;
+  DAYS.forEach((d, i) => ctx.fillText(d, (GX0 + DAYX) / 2 + 2, rowY(i) + 14));
+}
+
+// what sits in each row's slot: "open", then a numbered dot, then a coral X when the job slips away
+function slots(t) {
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  for (let i = 0; i < 5; i++) {
+    const k = ROWS.indexOf(i), y = rowY(i);
+    const openA = k < 0 ? 1 : 1 - seg(t, DOT[k] - 0.08, DOT[k]);
+    if (openA > 0) {
+      const wig = 1 + 0.05 * Math.exp(-((t % 0.6)) * 9) * (t < INTRO ? 1 : 0);
+      ctx.save(); ctx.globalAlpha = openA; ctx.translate(SLOTX, y); ctx.scale(wig, wig); ctx.font = `400 60px ${HAND}`; ctx.fillStyle = C.open; ctx.fillText('open', 0, 18);
+      ctx.strokeStyle = C.open; ctx.lineWidth = 3.5; ctx.lineCap = 'round'; mline(-150, 2, -80, 2, 1, i, 1.2); mline(80, 2, 150, 2, 1, i + 2, 1.2); ctx.restore();
+    }
+    if (k < 0) continue;
+    const gone = 1 - seg(t, FS[k], FS[k] + 0.2);
+    if (t >= DOT[k] && gone > 0) {
+      const s = sp(t - DOT[k], { freq: 3.2, damp: 0.55 });
+      ctx.save(); ctx.globalAlpha = gone; ctx.translate(SLOTX, y); ctx.scale(s, s);
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 0, 40, 0, TAU); ctx.fill();
+      ctx.font = '700 44px "Poppins"'; ctx.fillStyle = C.cream; ctx.fillText(String(k + 1), 0, 16); ctx.restore();
+      const x1 = seg(t, FAIL[k] + 0.02, FAIL[k] + 0.17), x2 = seg(t, FAIL[k] + 0.17, FAIL[k] + 0.32);
+      if (x1 > 0) { ctx.save(); ctx.globalAlpha = gone; ctx.strokeStyle = C.coral; ctx.lineWidth = 11; ctx.lineCap = 'round'; mline(SLOTX - 62, y - 50, SLOTX + 62, y + 50, x1, 1, 2.5); mline(SLOTX + 62, y - 50, SLOTX - 62, y + 50, x2, 3, 2.5); ctx.restore(); }
+    }
+  }
+}
+
+// ── magnets (one per service) and job notes
+function pill(k, t) {
+  const v = t - FS[k]; if (v < 0) return;
+  const s = lerp(1.7, 1, clamp(sp(v, { freq: 3.4, damp: 0.6 }), 0, 1.15)), a = Math.min(1, v / 0.06), y = rowY(ROWS[k]);
+  let fp = 32; ctx.letterSpacing = '1.5px'; ctx.font = `600 ${fp}px "Poppins"`;
+  let tw = ctx.measureText(PILLS[k]).width; if (tw > 262) { fp *= 262 / tw; ctx.font = `600 ${fp}px "Poppins"`; tw = 262; }
+  const w = tw + 44, cx = DAYX + 14 + w / 2;
+  ctx.save(); ctx.globalAlpha = a; ctx.translate(cx, y); ctx.scale(s, s);
+  ctx.save(); ctx.shadowColor = 'rgba(42,20,56,0.30)'; ctx.shadowBlur = 14 * SC; ctx.shadowOffsetY = 6 * SC; rr(-w / 2, -33, w, 66, 33); ctx.fillStyle = C.coral; ctx.fill(); ctx.restore();
+  rr(-w / 2 + 6, -28, w - 12, 22, 11); ctx.fillStyle = 'rgba(255,255,255,0.20)'; ctx.fill();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = '#fff'; ctx.fillText(PILLS[k], 1, fp * 0.36);
+  ctx.restore(); ctx.letterSpacing = '0px';
+}
+const NW = 224, NH = 104;
+function note(k, x, y, rot, s = 1, chk = -1) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
+  ctx.save(); ctx.shadowColor = 'rgba(42,20,56,0.28)'; ctx.shadowBlur = 16 * SC; ctx.shadowOffsetY = 8 * SC; ctx.fillStyle = C.sun; ctx.fillRect(-NW / 2, -NH / 2, NW, NH); ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.22)'; ctx.fillRect(-NW / 2, -NH / 2, NW, 18);
+  ctx.fillStyle = '#E9B85B'; ctx.beginPath(); ctx.moveTo(NW / 2, NH / 2 - 26); ctx.lineTo(NW / 2, NH / 2); ctx.lineTo(NW / 2 - 26, NH / 2); ctx.closePath(); ctx.fill();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.ink;
+  const ls = JOBS[k];
+  if (ls.length === 2) { ctx.font = `400 42px ${HAND}`; ctx.fillText(ls[0], 0, -6); ctx.fillText(ls[1], 0, 36); }
+  else { ctx.font = `400 50px ${HAND}`; ctx.fillText(ls[0], 0, 16); }
+  if (chk >= 0) {                                   // payoff: a coral check in a cream dot on the note's corner
+    const q = clamp(sp(chk, { freq: 3.2, damp: 0.55 }), 0, 1.3);
+    ctx.save(); ctx.translate(-NW / 2 + 8, -NH / 2 + 6); ctx.scale(q, q);
+    ctx.fillStyle = C.coral; ctx.beginPath(); ctx.arc(0, 0, 30, 0, TAU); ctx.fill();
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = 7; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; tick(1, -2, 1.05, seg(chk, 0.05, 0.32)); ctx.restore();
+  }
+  ctx.restore();
+}
+function notes(t) {
+  for (let k = 0; k < 3; k++) {
+    const y0 = rowY(ROWS[k]), u = t - LS[k], v = t - FS[k];
+    if (u >= 0 && v < 0) {                          // the job tries to reach the board and slips away
+      if (k === 0) {                                // 1: it never finds the board and drifts past
+        const p = seg(u, 0, 1.7); if (p < 1) {
+          const x = lerp(-190, 1290, p), y = y0 - 20 + 46 * Math.sin(p * TAU * 1.15), r = 0.13 * Math.sin(p * 10);
+          note(k, x, y, r);
+          ctx.save(); ctx.translate(x + 96, y - 92 + 8 * Math.sin(u * 9)); ctx.rotate(0.2 * Math.sin(u * 6)); ctx.font = `400 96px ${HAND}`; ctx.textAlign = 'center'; ctx.fillStyle = C.coral; ctx.fillText('?', 0, 0); ctx.restore();
+        }
+      } else {                                      // 2: it lands and leaves. 3: it rings, nobody answers, it drops
+        const p = clamp(sp(u, { freq: 2.6, damp: 0.72 }), 0, 1.08), d = Math.max(0, t - FAIL[k]);
+        let x = SLOTX, y = lerp(y0 - 900, y0, p) + 1500 * d * d + 50 * d, r = TILT[k];
+        if (k === 1) { r += -0.16 * seg(u, 0.85, 1.2) - 1.3 * d * d; x += 70 * d; }
+        else { r += (u > 0.4 && d === 0 ? 0.07 * Math.sin(u * 44) : 0) + 1.2 * d * d; x -= 70 * d; }
+        if (y < 2150) note(k, x, y, r);
+        if (k === 2 && u > 0.4 && d === 0) {        // ring marks
+          const a = 0.55 + 0.45 * Math.sin(u * 22);
+          ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = C.coral; ctx.lineWidth = 7; ctx.lineCap = 'round';
+          for (let j = 0; j < 2; j++) { const rad = 30 + j * 24; ctx.beginPath(); ctx.arc(x - NW / 2 - 4, y - NH / 2, rad, Math.PI * 0.95, Math.PI * 1.55); ctx.stroke(); ctx.beginPath(); ctx.arc(x + NW / 2 + 4, y - NH / 2, rad, -Math.PI * 0.55, Math.PI * 0.05); ctx.stroke(); }
+          ctx.restore();
+        }
+      }
+    }
+    if (v >= 0) pill(k, t);
+    if (v >= 0.3) {                                 // the fix: the job comes back and sticks
+      const p = ease.outCubic(seg(v, 0.3, 0.6)), d = t - LAND[k];
+      const s = 1 + (d >= 0 ? 0.14 * Math.exp(-d * 9) : 0), r = TILT[k] + (1 - p) * 0.3;
+      note(k, HOMEX, lerp(y0 - 760, y0, p), r, s, t >= CHECK[k] ? t - CHECK[k] : -1);
+    }
+  }
+}
+
+// ── hook: the question is up on frame 0; a coral loop circles the empty column
+function title(t) {
+  ctx.textBaseline = 'alphabetic'; ctx.font = `400 90px ${HAND}`; ctx.fillStyle = C.ink;
+  ctx.textAlign = 'center'; ctx.fillText('Painters: why is next', 540, 288);
+  const a = 'week still ', bq = 'empty?', wa = ctx.measureText(a).width, wb = ctx.measureText(bq).width, x0 = 540 - (wa + wb) / 2;
+  ctx.textAlign = 'left'; ctx.fillText(a, x0, 380); ctx.fillStyle = C.coral; ctx.fillText(bq, x0 + wa, 380);
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 7; ctx.lineCap = 'round'; mline(x0 + wa - 2, 398, x0 + wa + wb + 4, 394, ease.outCubic(seg(t, 0.05, 0.45)), 2, 2.2);
+}
+function loop(t) {
+  const k = ease.inOutCubic(seg(t, 0.3, 1.5)), a = 1 - seg(t, INTRO - 0.25, INTRO);
+  if (k <= 0 || a <= 0) return;
+  ctx.save(); ctx.globalAlpha = a * 0.9; ctx.strokeStyle = C.coral; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.beginPath();
+  const n = 90, a0 = -2.2;
+  for (let i = 0; i <= n * k; i++) { const th = a0 + (i / n) * TAU * 1.07, w = 1 + 0.025 * Math.sin(th * 3 + 1) + 0.03 * (i / n); const x = SLOTX + 262 * w * Math.cos(th), y = 820 + 372 * w * Math.sin(th); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+  ctx.stroke(); ctx.restore();
+}
+
+// ── running captions: handwriting on a strip of masking tape
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = clamp(sp(t - c.t0, { freq: 3.0, damp: 0.62 }), 0, 1.2), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  const badge = c.kind === 'leak' || c.kind === 'fix', bw = badge ? 96 : 0;
+  let px = 66; ctx.font = `400 ${px}px ${HAND}`;
+  let tw = Math.max(...c.lines.map(l => ctx.measureText(l).width));
+  if (tw + bw + 84 > 700) { px *= (700 - bw - 84) / tw; ctx.font = `400 ${px}px ${HAND}`; tw = Math.max(...c.lines.map(l => ctx.measureText(l).width)); }
+  const w = tw + bw + 84, h = 196, rot = (c.kind === 'leak' ? -0.022 : 0.016);
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1348 + (1 - Math.min(1, k)) * 26); ctx.rotate(rot); ctx.scale(0.86 + 0.14 * k, 0.86 + 0.14 * k);
+  ctx.save(); ctx.shadowColor = 'rgba(42,20,56,0.22)'; ctx.shadowBlur = 12 * SC; ctx.shadowOffsetY = 5 * SC;
+  ctx.beginPath(); ctx.moveTo(-w / 2, -h / 2); ctx.lineTo(w / 2, -h / 2);
+  for (let i = 0; i <= 14; i++) ctx.lineTo(w / 2 + (i % 2 ? 9 : 0), -h / 2 + (h * i) / 14);
+  ctx.lineTo(-w / 2, h / 2);
+  for (let i = 14; i >= 0; i--) ctx.lineTo(-w / 2 - (i % 2 ? 9 : 0), -h / 2 + (h * i) / 14);
+  ctx.closePath(); ctx.fillStyle = C.tape; ctx.fill(); ctx.restore();
+  ctx.fillStyle = 'rgba(255,255,255,0.25)'; ctx.fillRect(-w / 2 + 6, -h / 2 + 5, w - 12, 12);
+  const tx = -(bw + tw) / 2 + bw + tw / 2;
+  if (badge) {
+    const bx = -(bw + tw) / 2 + 36;
+    ctx.fillStyle = c.kind === 'leak' ? C.ink : C.coral; ctx.beginPath(); ctx.arc(bx, 0, 36, 0, TAU); ctx.fill();
+    if (c.kind === 'leak') { ctx.font = '700 40px "Poppins"'; ctx.textAlign = 'center'; ctx.fillStyle = C.cream; ctx.fillText(String(c.n), bx, 14); }
+    else { ctx.strokeStyle = '#fff'; ctx.lineWidth = 8; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; tick(bx + 1, -2, 1.2, seg(t, c.t0 + 0.08, c.t0 + 0.36)); }
+  }
+  ctx.font = `400 ${px}px ${HAND}`; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.ink;
+  if (c.kind === 'pay') {                           // the three words land one by one with the checks
+    const words = ['Found. ', 'Called. ', 'Booked.'], full = words.join(''), fw = ctx.measureText(full).width; let x = tx - fw / 2;
+    ctx.textAlign = 'left';
+    words.forEach((wd, i) => { const q = clamp(sp(t - CHECK[i], { freq: 3.4, damp: 0.6 }), 0, 1.2); if (q > 0) { ctx.save(); ctx.globalAlpha *= Math.min(1, q * 2); ctx.fillStyle = C.coral; ctx.fillText(wd, x, -14 + (1 - Math.min(1, q)) * 14); ctx.restore(); } x += ctx.measureText(wd).width; });
+    const q = clamp(sp(t - AIM, { freq: 3.0, damp: 0.7 }), 0, 1); if (q > 0) { ctx.save(); ctx.globalAlpha *= q; ctx.textAlign = 'center'; ctx.fillText(c.lines[1], tx, 62); ctx.restore(); }
+  } else {
+    ctx.fillText(c.lines[0], tx, -14); ctx.fillText(c.lines[1], tx, 62);
+    if (c.kind === 'fix') { ctx.strokeStyle = C.coral; ctx.lineWidth = 6; ctx.lineCap = 'round'; const lw = ctx.measureText(c.lines[1]).width; mline(tx - lw / 2, 78, tx + lw / 2, 75, ease.outCubic(seg(t, c.t0 + 0.2, c.t0 + 0.6)), 4, 1.8); }
+  }
+  ctx.restore();
+}
+
+// ── end: an eraser wipes the board into the plum end card
+let LOGO;
+function endCard(t) {
+  const X = lerp(-420, 1700, ease.inOutCubic(seg(t, END, END + 0.62))), slant = -0.2;
+  ctx.save(); ctx.beginPath(); ctx.moveTo(-100, -100); ctx.lineTo(X - (-100 - 960) * slant * -1, -100); ctx.lineTo(X - (2100 - 960) * slant * -1, 2100); ctx.lineTo(-100, 2100); ctx.closePath(); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(-100, -100, 1300, 2200);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 760); glow.addColorStop(0, 'rgba(240,100,90,0.16)'); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(-100, -100, 1300, 2200);
+  const rise = (t0, fn) => { const k = clamp(sp(t - t0, { freq: 2.6, damp: 0.8 })); if (k <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, k * 1.4); ctx.translate(0, (1 - k) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = `400 84px ${HAND}`; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = `400 84px ${HAND}`; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 978);
+    ctx.strokeStyle = C.coral; ctx.lineWidth = 6; ctx.lineCap = 'round'; mline(330, 1000, 750, 996, ease.outCubic(seg(t, T.tag2 + 0.15, T.tag2 + 0.6)), 2, 2); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1110); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1184); });
+  ctx.restore();
+  if (t < END + 0.7) {                              // the eraser itself rides the edge of the wipe
+    ctx.save(); ctx.translate(X + 12, 900); ctx.rotate(-0.2);
+    ctx.shadowColor = 'rgba(0,0,0,0.3)'; ctx.shadowBlur = 20 * SC; ctx.shadowOffsetY = 10 * SC;
+    rr(-70, -150, 140, 300, 18); ctx.fillStyle = '#3B2350'; ctx.fill(); ctx.shadowColor = 'transparent';
+    rr(-70, -150, 46, 300, 18); ctx.fillStyle = '#E9E3D8'; ctx.fill(); ctx.restore();
+  }
+}
+
+// punch-in: a slow creep plus a small kick on every hit, so the frame never sits still
+function zoom(t) {
+  let z = 1 + 0.04 * (1 - ease.outCubic(seg(t, 0, 0.9))) + 0.012 * (t / DUR);
+  for (const p of PUNCH) { const d = t - p; if (d >= 0 && d < 1) z += 0.02 * Math.exp(-d * 6); }
+  if (t >= END) z += 0.02 * Math.exp(-(t - END) * 4) + 0.006 * (t - END);
+  return z;
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 1.7;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  const z = zoom(t); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  board(t);
+  if (t < END + 0.7) { grid(t); slots(t); loop(t); notes(t); title(t); CAPS.forEach(c => caption(c, t)); }
+  if (t >= END) endCard(t);
+  ctx.restore();
+};
+await loadFonts([`400 90px ${HAND}`, '600 32px "Poppins"', '700 32px "Poppins"', '800 44px "Nunito"']);
+LOGO = await loadImage('assets/logo-long.png');
+makeSmudge();
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>

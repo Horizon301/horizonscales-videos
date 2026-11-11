@@ -31,8 +31,17 @@ Watch rate = average watch time ÷ length. Engagement = (likes + comments + shar
 | #1 missed-call | TikTok | Oct 29 | 130 | ≈15% (3 s of 20) | 1 | 0 | 0 | – | 0.8% | – | no (<300) |
 | #2 pretty-website | Instagram | Oct 29 | 40 | ≈16% (3.3 s of ~20) | 0 | 0 | 0 | 0 | 0% | 78.9% | no (<300) |
 | #1 missed-call | Instagram | Oct 29 | 136 | ≈46% (9.2 s of ~20) | 0 | 0 | 0 | 0 | 0% | 48.6% | no (<300) |
+| #3 likes-dont-book-jobs | Instagram | Nov 3 | 0 | – | 0 | 0 | 0 | 0 | – | – | no (<300) |
+| #4 one-home | Instagram | Nov 3 | 0 | ≈15% (3.2 s of 22) | 0 | 0 | 0 | 0 | – | – | no (<300) |
+| #8 we-dont-just | Facebook | Nov 4 | 3 | ≈15% (2 s of 13) | 0 | 0 | – | – | 0% | – | no (<300) |
+| #7 overview (voice) | Facebook | Nov 4 | 7 | ≈7% (3 s of 44) | 0 | 0 | – | – | 0% | – | no (<300) |
+| #6 quiet-phone (voice) | Facebook | Nov 3 | 15 | ≈6% (2 s of 31) | 0 | 0 | – | – | 0% | – | no (<300) |
+| #3 likes-dont-book-jobs | Facebook | Nov 3 | 72 | ≈4% (1 s of 24) | 0 | 0 | – | – | 0% | – | no (<300) |
+| #4 one-home | Facebook | Nov 3 | 9 | ≈14% (3 s of 22) | 0 | 0 | – | – | 0% | – | no (<300) |
 
 Baseline pulled Nov 10 from Metricool (TikTok average watch time comes in whole seconds, so short-video rates are rough). #9 was too new to count.
+
+Nov 11 pull (nightly run): TikTok and Instagram numbers for the rows above are unchanged since Nov 10. Added the Instagram rows for #3 and #4 (Metricool reports 0 views for both) and the five Facebook Reels (Facebook gives views, likes and average time watched in whole seconds; the "Comments" column holds its "actions" count). YouTube Shorts: Metricool lists four Shorts (#1–#4) but returns no views or watch time for any of them yet. #9 (TikTok, Nov 10 evening) has 4 views and is under 48 h, so it isn't in the table. No post has passed 300 views since the baseline, so still only two counted videos (#6 and #7, both voice, both made before Test 1).
 
 ## Tests
 - **Test 1 · AI voice vs. no voice** · started Nov 11 · alternate nights (even count of nightly videos = VOICE, odd = TEXT), both with a direct-question hook · ends when each arm has 3 counted videos · result: –
