@@ -1,0 +1,12 @@
+# Video #14 — The 3-Second Test
+*Horizon Scales · 2026-11-11 (evening) · no voice · type 1: a test the viewer plays · topic: websites · 22 s · 1080×1920*
+
+- **Why this one:** Kai liked the test format of #13 "The Drive-By Test" but said "I don't sell street signs". Same format, on something Horizon Scales does: websites. Nothing is pitched; the services are only on the end card.
+- **Hook (frame 0):** "Painters: does your website pass the 3-second test?" A phone says READY? on a turning yellow sunburst.
+- **What happens:** "Quick test. You get three seconds." → Site A is on the phone for three seconds with a 3-2-1 timer (a pretty pastel page: "Transforming spaces, elevating lives.", a Learn more button, no phone number) → buzzer, the screen goes dark with a "?": "What do they do? What's the number?" → Site B for three seconds ("House Painting", a "Call 555-0142" button on top, "House painting in your town.", "Get a free estimate") → both phones side by side: "Same three seconds. Which one would you call?" → a coral ring around B: "Say what you do. Put the number on top." → a plum circle grows into the end card.
+- **Look:** one phone on a sun-yellow sunburst, plum and coral caption pills, a round countdown badge, Young Serif title with Poppins. New for this series.
+- **Sound:** original quiz-show thinking music at 120 BPM in C (marimba line, plucked bass, claps), a tick for every second on the clock, a low buzzer when time is up, rising bells on the answer.
+- **Rule check:** no stats, results, prices, guarantee, launch date or pitch. Both sites are made up; the phone number is 555-01xx (reserved for fiction). "Get a free estimate" is a button on the pretend site, not an offer from Horizon Scales. The tip is advice, not a promise.
+- **Frame check:** title at the top, phone in the middle (left of x 864 below y 920), captions centred at x 500 just below the middle, nothing in the bottom strip.
+- **Checks:** `sh build.sh` → all technical checks passed on the second build (the first failed "no black frames" at the end-card wipe and true peak −0.7 dBTP; fixed by bringing the logo in with the wipe and softening the marimba and effects): determinism, 1080×1920, 30 fps, 22 s, no black frames, −14.1 LUFS, true peak −1.2 dBTP. Contact sheet and zone overlay reviewed. The mix was checked by measurement only.
+- **Rebuild:** copy `kit/build.sh`, `kit/motion.js`, `kit/fonts/`, `kit/assets/` into this folder, then `sh build.sh`.

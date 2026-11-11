@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The 3-Second Test — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-800.woff2) format("woff2"); font-weight: 800; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #FFD27A; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, PUNCH } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, TAU = Math.PI * 2;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', ink: '#22102E', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A', sunDeep: '#F9BE55' };
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+
+// frame safety (Kai, Nov 5): title at the top, phone in the middle (x 340–740), captions centred at x 500 around y 1345,
+// nothing that matters right of x 864 below y 920 or under y 1630.
+const PW = 400, PH = 770, SW = 372, SH = 742;      // phone body and its screen
+
+// ── background: a slow yellow sunburst so the frame is never still
+function backdrop(t) {
+  ctx.fillStyle = C.sun; ctx.fillRect(-40, -40, 1160, 2000);
+  ctx.save(); ctx.translate(540, 830); ctx.rotate(t * 0.12); ctx.fillStyle = 'rgba(255,255,255,0.20)';
+  for (let i = 0; i < 12; i++) { ctx.rotate(TAU / 12); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-170, -1700); ctx.lineTo(170, -1700); ctx.closePath(); ctx.fill(); }
+  ctx.restore();
+  const g = ctx.createRadialGradient(540, 830, 100, 540, 830, 1150); g.addColorStop(0, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(249,190,85,0.55)'); ctx.fillStyle = g; ctx.fillRect(-40, -40, 1160, 2000);
+}
+
+// ── the two websites, drawn in screen coordinates (0,0)–(372,742)
+function siteA() {                                  // pretty, and tells you nothing
+  const g = ctx.createLinearGradient(0, 0, SW, SH); g.addColorStop(0, '#E7D8F2'); g.addColorStop(0.5, '#F8D9D2'); g.addColorStop(1, '#D5E6EE'); ctx.fillStyle = g; ctx.fillRect(0, 0, SW, SH);
+  ctx.fillStyle = 'rgba(255,255,255,0.55)'; ctx.beginPath(); ctx.ellipse(70, 250, 190, 120, 0.5, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(240,160,150,0.45)'; ctx.beginPath(); ctx.ellipse(320, 430, 170, 110, -0.4, 0, TAU); ctx.fill();
+  ctx.fillStyle = 'rgba(160,140,200,0.35)'; ctx.beginPath(); ctx.ellipse(150, 620, 220, 100, 0.2, 0, TAU); ctx.fill();
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.fillStyle = '#6B5C7A'; ctx.font = '600 13px "Poppins"';
+  ['HOME', 'ABOUT', 'GALLERY', 'BLOG', 'CONTACT'].forEach((s, i) => ctx.fillText(s, 20 + i * 68, 66));
+  ctx.textAlign = 'center'; ctx.fillStyle = '#4A3B5C'; ctx.font = '400 40px "Young Serif"';
+  ctx.fillText('Transforming', SW / 2, 290); ctx.fillText('spaces,', SW / 2, 338); ctx.fillText('elevating lives.', SW / 2, 386);
+  ctx.font = '600 15px "Poppins"'; ctx.fillStyle = '#7A6B8A'; ctx.fillText('Where craft meets vision.', SW / 2, 428);
+  rr(SW / 2 - 76, 462, 152, 44, 22); ctx.strokeStyle = '#7A6B8A'; ctx.lineWidth = 2; ctx.stroke(); ctx.font = '600 15px "Poppins"'; ctx.fillText('Learn more', SW / 2, 490);
+  ctx.fillStyle = 'rgba(74,59,92,0.28)'; for (let i = 0; i < 4; i++) rr(46, 590 + i * 26, 280 - (i % 2) * 60, 10, 5), ctx.fill();
+}
+function siteB() {                                  // plain, and you know what to do
+  ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0, 0, SW, SH);
+  ctx.fillStyle = C.ink; ctx.fillRect(0, 0, SW, 150);
+  ctx.textBaseline = 'alphabetic'; ctx.textAlign = 'left'; ctx.font = '700 22px "Poppins"'; ctx.fillStyle = C.cream; ctx.fillText('House Painting', 22, 78);
+  rr(22, 94, SW - 44, 44, 22); ctx.fillStyle = C.coral; ctx.fill(); ctx.textAlign = 'center'; ctx.font = '700 22px "Poppins"'; ctx.fillStyle = '#fff'; ctx.fillText('Call 555-0142', SW / 2, 124);
+  ctx.fillStyle = C.ink; ctx.font = '800 44px "Poppins"'; ctx.fillText('House', SW / 2, 222); ctx.fillText('painting', SW / 2, 270); ctx.fillText('in your town.', SW / 2, 318);
+  ctx.font = '600 19px "Poppins"'; ctx.fillStyle = '#5B4A6A'; ctx.fillText('Interior · Exterior · Cabinets', SW / 2, 360);
+  rr(40, 386, SW - 80, 64, 32); ctx.fillStyle = C.sun; ctx.fill(); ctx.font = '700 23px "Poppins"'; ctx.fillStyle = C.ink; ctx.fillText('Get a free estimate', SW / 2, 427);
+  // a small picture of a freshly painted house
+  ctx.fillStyle = '#DCEAF2'; ctx.fillRect(22, 478, SW - 44, 242); ctx.fillStyle = '#9CC58C'; ctx.fillRect(22, 668, SW - 44, 52);
+  ctx.fillStyle = '#F3E3C8'; ctx.fillRect(110, 566, 160, 112); ctx.fillStyle = C.coral; ctx.beginPath(); ctx.moveTo(92, 566); ctx.lineTo(190, 500); ctx.lineTo(288, 566); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#6B4A3A'; ctx.fillRect(176, 620, 30, 58); ctx.fillStyle = '#fff'; ctx.fillRect(126, 590, 34, 34); ctx.fillRect(222, 590, 34, 34);
+}
+function blank(t) {
+  ctx.fillStyle = '#160A22'; ctx.fillRect(0, 0, SW, SH);
+  const k = 1 + 0.06 * Math.sin(t * 5);
+  ctx.save(); ctx.translate(SW / 2, SH / 2 + 50); ctx.scale(k, k); ctx.font = '400 240px "Young Serif"'; ctx.textAlign = 'center'; ctx.fillStyle = C.sun; ctx.fillText('?', 0, 30); ctx.restore();
+}
+function ready(t) {
+  ctx.fillStyle = '#160A22'; ctx.fillRect(0, 0, SW, SH);
+  ctx.textAlign = 'center'; ctx.font = '700 30px "Poppins"'; ctx.letterSpacing = '6px'; ctx.fillStyle = C.coralLite; ctx.fillText('READY?', SW / 2 + 3, 300); ctx.letterSpacing = '0px';
+  const n = 3; for (let i = 0; i < n; i++) { const a = 0.35 + 0.65 * (Math.floor(t * 4) % n === i ? 1 : 0); ctx.globalAlpha = a; ctx.fillStyle = C.sun; ctx.beginPath(); ctx.arc(SW / 2 + (i - 1) * 44, 370, 12, 0, TAU); ctx.fill(); } ctx.globalAlpha = 1;
+}
+
+function phone(cx, cy, s, rot, screen, t, alpha = 1) {
+  ctx.save(); ctx.globalAlpha = alpha; ctx.translate(cx, cy); ctx.rotate(rot); ctx.scale(s, s);
+  ctx.save(); ctx.shadowColor = 'rgba(60,30,10,0.35)'; ctx.shadowBlur = 40 * SC; ctx.shadowOffsetY = 22 * SC; rr(-PW / 2, -PH / 2, PW, PH, 52); ctx.fillStyle = '#1C0F28'; ctx.fill(); ctx.restore();
+  ctx.save(); rr(-SW / 2, -SH / 2, SW, SH, 40); ctx.clip(); ctx.translate(-SW / 2, -SH / 2);
+  if (screen === 'A') siteA(); else if (screen === 'B') siteB(); else if (screen === '?') blank(t); else ready(t);
+  ctx.restore();
+  rr(-46, -SH / 2 + 12, 92, 22, 11); ctx.fillStyle = '#1C0F28'; ctx.fill();
+  ctx.restore();
+}
+
+// the countdown badge on the phone's corner while a site is showing
+function timer(t, t0, t1) {
+  if (t < t0 || t >= t1) return;
+  const e = t - t0, n = 3 - Math.floor(e), frac = 1 - e / (t1 - t0), pop = 1 + 0.25 * Math.exp(-(e % 1) * 9);
+  ctx.save(); ctx.translate(752, 498); ctx.scale(pop, pop);
+  ctx.save(); ctx.shadowColor = 'rgba(60,30,10,0.3)'; ctx.shadowBlur = 16 * SC; ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 0, 70, 0, TAU); ctx.fill(); ctx.restore();
+  ctx.strokeStyle = C.coral; ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, 0, 56, -Math.PI / 2, -Math.PI / 2 + TAU * frac); ctx.stroke();
+  ctx.font = '800 76px "Poppins"'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.cream; ctx.fillText(String(n), 0, 27);
+  ctx.restore();
+}
+
+function stage(t) {
+  const float = 8 * Math.sin(t * 1.7), rot = 0.012 * Math.sin(t * 1.1);
+  if (t < T.cmp) {
+    const scr = t < T.a0 ? 'R' : t < T.a1 ? 'A' : t < T.b0 ? '?' : 'B';
+    const cut = [T.a0, T.a1, T.b0].reduce((m, c) => (t >= c ? Math.max(m, 0.05 * Math.exp(-(t - c) * 8)) : m), 0);
+    phone(540, 830 + float, 1 + cut, rot, scr, t);
+    timer(t, T.a0, T.a1); timer(t, T.b0, T.b1);
+    return;
+  }
+  // both phones side by side, then the answer
+  const k = ease.outCubic(seg(t, T.cmp, T.cmp + 0.5)), tip = t - T.tip;
+  const dim = tip >= 0 ? lerp(1, 0.4, ease.outCubic(seg(tip, 0, 0.4))) : 1, grow = tip >= 0 ? 0.06 * clamp(sp(tip, { freq: 3, damp: 0.6 }), 0, 1.2) : 0;
+  const s = lerp(1, 0.6, k);
+  phone(lerp(540, 330, k) - (1 - k) * 0, 800 + float * 0.5, s, -0.03 * k, 'A', t, k * dim);
+  phone(lerp(540, 680, k), 800 - float * 0.5, s + grow, 0.03 * k, 'B', t);
+  const tag = (txt, x, a) => { ctx.save(); ctx.globalAlpha = k * a; ctx.translate(x, 484); ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(0, 0, 44, 0, TAU); ctx.fill(); ctx.font = '700 50px "Poppins"'; ctx.textAlign = 'center'; ctx.fillStyle = C.cream; ctx.fillText(txt, 0, 18); ctx.restore(); };
+  tag('A', 330, dim); tag('B', 680, 1);
+  if (tip >= 0) {
+    const q = ease.outCubic(seg(tip, 0.1, 0.6));
+    ctx.save(); ctx.strokeStyle = C.coral; ctx.lineWidth = 13; ctx.lineCap = 'round'; ctx.beginPath();
+    for (let i = 0; i <= 80 * q; i++) { const th = -1.9 + (i / 80) * TAU * 1.05, w = 1 + 0.02 * Math.sin(th * 3); const x = 680 + 168 * w * Math.cos(th), y = 800 + 290 * w * Math.sin(th); i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+    ctx.stroke(); ctx.restore();
+  }
+}
+
+// ── overlays
+function title(t) {
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 38px "Poppins"'; ctx.letterSpacing = '9px'; ctx.fillStyle = C.coral; ctx.fillText('PAINTERS:', 544, 226); ctx.letterSpacing = '0px';
+  ctx.font = '400 62px "Young Serif"'; ctx.fillStyle = C.ink; ctx.fillText('Does your website pass', 540, 302);
+  const a = 'the ', bq = '3-second test?', wa = ctx.measureText(a).width, wb = ctx.measureText(bq).width, x0 = 540 - (wa + wb) / 2;
+  ctx.textAlign = 'left'; ctx.fillText(a, x0, 380); ctx.fillStyle = '#C8402F'; ctx.fillText(bq, x0 + wa, 380);
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = clamp(sp(t - c.t0, { freq: 3.0, damp: 0.64 }), 0, 1.15), out = 1 - seg(t, c.t1 - 0.1, c.t1), two = c.lines.length === 2;
+  ctx.font = c.big ? '700 84px "Poppins"' : '800 58px "Nunito"';
+  const tw = Math.max(...c.lines.map(l => ctx.measureText(l).width)), w = tw + 104, h = two ? 186 : 150;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1345 + (1 - Math.min(1, k)) * 24); ctx.rotate(c.big ? -0.02 : 0); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  ctx.save(); ctx.shadowColor = 'rgba(60,30,10,0.35)'; ctx.shadowBlur = 20 * SC; ctx.shadowOffsetY = 8 * SC; rr(-w / 2, -h / 2, w, h, h / 2 > 60 ? 44 : 40); ctx.fillStyle = c.big ? C.coral : C.ink; ctx.fill(); ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = c.big ? '#fff' : C.cream;
+  if (two) { ctx.fillText(c.lines[0], 0, -14); ctx.fillText(c.lines[1], 0, 56); } else ctx.fillText(c.lines[0], 0, 30);
+  ctx.restore();
+}
+
+// ── end card: a plum circle grows out of the middle
+let LOGO;
+function endCard(t) {
+  const k = ease.inOutCubic(seg(t, T.end, T.shut));
+  ctx.fillStyle = C.plum; ctx.beginPath(); ctx.arc(540, 830, 1500 * k, 0, TAU); ctx.fill();
+  if (t < T.logo) return;
+  ctx.save(); ctx.beginPath(); ctx.arc(540, 830, 1500 * k + 1, 0, TAU); ctx.clip();
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 760), ga = seg(t, T.shut - 0.1, T.shut + 0.4); glow.addColorStop(0, `rgba(240,100,90,${0.17 * ga})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(-40, -40, 1160, 2000);
+  const rise = (t0, fn) => { const q = clamp(sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.4); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 968); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1174); });
+  ctx.restore();
+}
+
+function zoom(t) {
+  let z = 1 + 0.035 * (1 - ease.outCubic(seg(t, 0, 0.9))) + 0.012 * (t / DUR);
+  for (const p of PUNCH) { const d = t - p; if (d >= 0 && d < 1) z += 0.02 * Math.exp(-d * 6); }
+  if (t >= T.shut) z += 0.006 * (t - T.shut);
+  return z;
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 3.4;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = C.sun; ctx.fillRect(0, 0, 1080, 1920);
+  const z = zoom(t); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  if (t < T.shut) { backdrop(t); stage(t); title(t); CAPS.forEach(c => caption(c, t)); }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', '800 58px "Nunito"', '600 32px "Poppins"', '700 84px "Poppins"', '800 44px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>

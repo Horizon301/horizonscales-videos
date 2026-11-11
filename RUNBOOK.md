@@ -71,12 +71,13 @@ Kai, after seeing #12: "I want it to be more unique instead of being the exact s
 - **Stop making videos that explain what Horizon Scales does or sells.** No "here's the problem, here's our service that fixes it", even for a single service. The services appear on the plum end card and nowhere else, except in type 7 below.
 - **Rotate the TYPE of video, not just the look.** Never the same type two nights running; write the type in `log.md`. Types:
   1. **A test or game the viewer plays** (a drive-by sign test, "A or B: which would you call?", spot what's wrong).
-  2. **One free tip they can do today in five minutes** that we don't sell (their voicemail greeting, the photo on their profile, where the phone number sits).
+  2. **One free tip they can do today in five minutes** (their voicemail greeting, the photo on their Google profile, where the phone number sits on their site).
   3. **A trade-life moment or joke** an owner recognizes, with no lesson attached.
   4. **A myth or hot take:** one opinion, stated plainly, that owners will want to argue with.
   5. **POV of the homeowner:** how a customer actually picks who to call.
   6. **Behind the build:** practice work, always labeled "concept".
   7. **A service story** (one service, one small story). At most one a week.
+- **The subject is always something Horizon Scales works on (Kai, Nov 11, on the yard-sign video: "I do like that but I don't sell street signs").** Every video is about one of: a business's **website**, **being found online / ads**, or **answering calls** (the AI receptionist's territory). Not yard signs, truck wraps, flyers, business cards or anything else we don't do. Kai liked the #13/#14 test format; keep it in the rotation.
 - **The buddy test, before building:** finish the sentence "a painter would tell his buddy this video is about ___". If the answer is "a marketing agency", "three leaks" or "why you need ads / a website / an AI receptionist", start over.
 - **Never ask Kai to approve a post.** He said it again on Nov 11: "you dont need my approvle to post, that's the whole point of this chat." Schedule it, and tell him how to stop it. That's all.
 
