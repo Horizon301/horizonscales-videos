@@ -1,0 +1,11 @@
+# Test video — "Not You" (map-route skill + real-instrument sound)
+*Horizon Scales · 2026-11-11 (evening) · a TEST Kai asked for, not scheduled or posted · no voice · type 5: the homeowner's point of view · topic: being found · 15.6 s · 1080×1920*
+
+- **What it tests:** (1) Kai's new `animation-skills:map-route` skill as the picture, and (2) the new sound: real sampled instruments instead of synth beeps.
+- **Hook (frame 0):** "Painters: is this homeowner headed to you?"
+- **What happens:** "She just searched 'painter near me.'" → her route draws itself across a white 3D city while the ETA card counts down: "Four minutes away. Ready to hire." → the pin drops, the destination card reads "Another painter" → "Not you." → "She called the first painter she found." → the plum end card slides up. One idea, no pitch, no list; the services are only on the end card.
+- **Picture:** the map clip is rendered by the skill (`found.map.json` → `found.map.mp4`, 5 s). `index.html` plays that clip frame by frame at its own speed under our title, caption pills and end card, with the map shifted down so the skill's ETA card clears the title.
+- **Sound:** no synth voices at all. `music.py` writes `music.json`; `kit/sound/sf_render.py` renders it with sampled instruments: electric piano, upright bass, a brush drum kit, one trombone sliding down three notes on "Not you.", vibraphone on the end card. 88 BPM, D minor resolving to F.
+- **Rule check:** no stats, results, prices, guarantee, launch date or pitch. The homeowner, the city and "Another painter" are made up; the street names are decoration.
+- **Checks:** `sh build.sh` → all technical checks passed (determinism, 1080×1920, 30 fps, 15.6 s, no black frames, −14.2 LUFS, true peak −1.3 dBTP). Contact sheet and zone overlay reviewed. The sound was checked by measurement only (Claude can't hear it); the first mix was bass-heavy, so the bass was turned down and the piano and drums up.
+- **Rebuild:** render the clip with the skill (`HYPERFRAMES_BROWSER_PATH=<the pre-installed Chromium> python3 <skill>/build.py found.map.json`), extract its frames (`mkdir frames && ffmpeg -i found.map.mp4 -q:v 3 frames/f_%03d.jpg`), copy `kit/build.sh`, `kit/motion.js`, `kit/fonts/`, `kit/assets/` in, run `python3 music.py && python3 ../../kit/sound/sf_render.py music.json audio/band.wav`, then `sh build.sh`.

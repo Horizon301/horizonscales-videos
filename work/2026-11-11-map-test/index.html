@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Not You — Horizon Scales (map-route test)</title>
+<style>
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #1C0228; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, PUNCH, FPS_CLIP, CLIP_FRAMES, clipTime } from './timeline.js';
+import { seg, lerp, ease, spring, clamp, stageSize, setupCanvas, loadFonts, loadImage } from './motion.js';
+
+const { W, H } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), W, H);
+const SC = W / 1080, TAU = Math.PI * 2;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', ink: '#22102E', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const OFFY = 190;                                   // the map sits 150 px lower so its ETA card clears the title
+
+let FR = [];
+function map(t) {                                   // the map-route clip, slowed with a cross-blend between frames
+  const i = clamp(Math.round(clipTime(t) * FPS_CLIP), 0, CLIP_FRAMES - 1);   // the clip runs at its own speed: one clip frame per video frame
+  const push = t >= T.hold ? 1 + 0.03 * ease.outCubic(seg(t, T.hold, T.end)) : t < T.go ? 1 + 0.03 * (1 - seg(t, 0, T.go)) : 1;
+  ctx.save(); ctx.translate(540, 960 + OFFY); ctx.scale(push, push); ctx.translate(-540, -960);
+  ctx.imageSmoothingEnabled = true; ctx.drawImage(FR[i], 0, 0, 1080, 1920);
+  ctx.restore();
+}
+function title(t) {
+  const g = ctx.createLinearGradient(0, 0, 0, 450); g.addColorStop(0, 'rgba(28,2,40,1)'); g.addColorStop(0.9, 'rgba(28,2,40,1)'); g.addColorStop(1, 'rgba(28,2,40,0)');
+  ctx.fillStyle = g; ctx.fillRect(-40, -40, 1160, 490);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 38px "Poppins"'; ctx.letterSpacing = '9px'; ctx.fillStyle = C.sun; ctx.fillText('PAINTERS:', 544, 214); ctx.letterSpacing = '0px';
+  ctx.font = '400 70px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('Is this homeowner', 540, 292);
+  const a = 'headed ', bq = 'to you?', wa = ctx.measureText(a).width, wb = ctx.measureText(bq).width, x0 = 540 - (wa + wb) / 2;
+  ctx.textAlign = 'left'; ctx.fillText(a, x0, 372); ctx.fillStyle = C.coralLite; ctx.fillText(bq, x0 + wa, 372);
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = clamp(sp(t - c.t0, { freq: 3.0, damp: 0.64 }), 0, 1.15), out = 1 - seg(t, c.t1 - 0.1, c.t1), two = c.lines.length === 2;
+  ctx.font = c.big ? '700 96px "Poppins"' : '800 58px "Nunito"';
+  const tw = Math.max(...c.lines.map(l => ctx.measureText(l).width)), w = tw + 104, h = two ? 186 : c.big ? 168 : 124;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1345 + (1 - Math.min(1, k)) * 24); ctx.rotate(c.big ? -0.025 : 0); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  ctx.save(); ctx.shadowColor = 'rgba(20,0,30,0.4)'; ctx.shadowBlur = 22 * SC; ctx.shadowOffsetY = 8 * SC; rr(-w / 2, -h / 2, w, h, 40); ctx.fillStyle = c.big ? C.coral : C.ink; ctx.fill(); ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = c.big ? '#fff' : C.cream;
+  if (two) { ctx.fillText(c.lines[0], 0, -14); ctx.fillText(c.lines[1], 0, 56); } else ctx.fillText(c.lines[0], 0, c.big ? 34 : 20);
+  ctx.restore();
+}
+let LOGO;
+function endCard(t) {
+  const k = ease.inOutCubic(seg(t, T.end, T.shut)), y = 1960 - 2000 * k;
+  ctx.fillStyle = C.plum; ctx.fillRect(-40, y, 1160, 2000);
+  if (t < T.logo) return;
+  ctx.save(); ctx.beginPath(); ctx.rect(-40, y, 1160, 2000); ctx.clip();
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 760); glow.addColorStop(0, 'rgba(240,100,90,0.17)'); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(-40, -40, 1160, 2000);
+  const rise = (t0, fn) => { const q = clamp(sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.4); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 968); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1174); });
+  ctx.restore();
+}
+function zoom(t) {
+  let z = 1 + 0.01 * (t / DUR);
+  for (const p of PUNCH) { const d = t - p; if (d >= 0 && d < 1) z += 0.018 * Math.exp(-d * 6); }
+  if (t >= T.shut) z += 0.006 * (t - T.shut);
+  return z;
+}
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 6.6;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = '#EDEDED'; ctx.fillRect(0, 0, 1080, 1920);
+  const z = zoom(t); ctx.translate(960, 860); ctx.scale(z, z); ctx.translate(-960, -860);   // anchored near the right so the destination card never leaves the frame
+  if (t < T.shut) { map(t); title(t); CAPS.forEach(c => caption(c, t)); }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 70px "Young Serif"', '800 58px "Nunito"', '600 32px "Poppins"', '700 96px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+FR = await Promise.all(Array.from({ length: CLIP_FRAMES }, (_, i) => loadImage(`frames/f_${String(i + 1).padStart(3, '0')}.jpg`)));
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>

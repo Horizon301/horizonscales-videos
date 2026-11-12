@@ -1,0 +1,5 @@
+{
+  "destination": "Another painter", "minutes": 4, "distance": 1.6, "unit": "mi",
+  "places": ["Maple St", "City Park", "Main St", "Elm Park", "The River"],
+  "accent": "#F0645A", "seed": 11, "hold": 1.0
+}
