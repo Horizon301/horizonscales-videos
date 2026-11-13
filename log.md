@@ -38,12 +38,16 @@ Watch rate = average watch time ÷ length. Engagement = (likes + comments + shar
 | #6 quiet-phone (voice) | Facebook | Nov 3 | 15 | ≈6% (2 s of 31) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #3 likes-dont-book-jobs | Facebook | Nov 3 | 72 | ≈4% (1 s of 24) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #4 one-home | Facebook | Nov 3 | 9 | ≈14% (3 s of 22) | 0 | 0 | – | – | 0% | – | no (<300) |
+| #9 the-swing | TikTok | Nov 10 | 4 | 0% (0 s of 21) | 0 | 0 | 0 | – | 0% | – | no (<300) |
+| #9 the-swing | Facebook | Nov 10 | 5 | 0% (0 s of 21) | 0 | 0 | – | – | 0% | – | no (<300) |
 
 Baseline pulled Nov 10 from Metricool (TikTok average watch time comes in whole seconds, so short-video rates are rough). #9 was too new to count.
 
 Nov 11 pull (nightly run): TikTok and Instagram numbers for the rows above are unchanged since Nov 10. Added the Instagram rows for #3 and #4 (Metricool reports 0 views for both) and the five Facebook Reels (Facebook gives views, likes and average time watched in whole seconds; the "Comments" column holds its "actions" count). YouTube Shorts: Metricool lists four Shorts (#1–#4) but returns no views or watch time for any of them yet. #9 (TikTok, Nov 10 evening) has 4 views and is under 48 h, so it isn't in the table. No post has passed 300 views since the baseline, so still only two counted videos (#6 and #7, both voice, both made before Test 1).
 
 Nov 12 pull (nightly run, 1:30 AM MT): no post has reached 48 h since the Nov 11 pull, so no new rows. Every row above is unchanged. Too early to count, for the record: #9 the-swing (Nov 10 evening) TikTok 4 views, Facebook 5 views; #10 level-1 (Nov 11, 10 AM, published on all 4 apps) Facebook 6 views with a 6 s average watch (about 22% of 27 s), not yet listed by Metricool for TikTok, Instagram or YouTube; #14 three-second-test (Nov 11, 6 PM, published on all 4 apps) not yet listed on any app. YouTube still returns no views for any Short. Still only two counted videos (#6 and #7).
+
+Nov 13 pull (nightly run, 1:30 AM MT): #9 the-swing passed 48 h, so its TikTok and Facebook rows are in the table (4 and 5 views, average watch 0 s on both; Instagram and YouTube don't list it). Every older row is unchanged. Too early to count, for the record (Facebook is the only app Metricool lists these on so far): #10 level-1 (Nov 11, 10 AM) 6 views, 4 s average (about 15% of 27 s); #14 three-second-test (Nov 11, 6 PM) 19 views, 1 s average (about 5% of 22 s); #15 worst-time (Nov 12, 10 AM, published on all 4 apps) 10 views, 2 s average (about 9% of 22.2 s). TikTok, Instagram and YouTube return nothing yet for #10, #14 or #15, and YouTube still returns no views for any Short. Still only two counted videos (#6 and #7). Posts are not reaching 300 views: none of the four posts since Nov 10 (#9, #10, #14, #15) has passed 20 views on any app Metricool reports.
 
 ## Tests
 - **Test 1 · AI voice vs. no voice** · started Nov 11 · alternate nights (even count of nightly videos = VOICE, odd = TEXT), both with a direct-question hook · ends when each arm has 3 counted videos · result: –

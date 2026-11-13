@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Find the Painter — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Fredoka"; src: url(fonts/Fredoka.woff2) format("woff2"); font-weight: 300 700; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #BFE6FF; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, TICKS, SEARCH } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, rng, lerp, clamp, TAU } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A', red: '#D94B3F' };
+const INK = '#2B1B33';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+
+// frame safety (Kai, Nov 5): title panel at the top (y 176–396), the town in the middle (the painter's shop at x 348–532,
+// y 848–980), captions centred at x 500 around y 1325, timer badge and search bar under them (above y 1540),
+// nothing that matters right of x 864 below y 920 or under y 1630.
+
+// ── small drawing helpers
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+const fs = (fill, lw = 4, stroke = INK) => { if (fill) { ctx.fillStyle = fill; ctx.fill(); } if (lw > 0) { ctx.lineWidth = lw; ctx.strokeStyle = stroke; ctx.lineJoin = 'round'; ctx.lineCap = 'round'; ctx.stroke(); } };
+const ln = (x1, y1, x2, y2, lw, col = INK) => { ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.lineWidth = lw; ctx.strokeStyle = col; ctx.lineCap = 'round'; ctx.stroke(); };
+const wrap = (x, a, b) => a + ((((x - a) % (b - a)) + (b - a)) % (b - a));
+
+// ── the town: 4 rows of 4 shops (cells 200 wide from x 140), a plain house at each end of every row
+const ROW0 = 430, ROWH = 200, CELL = 200, X0 = 140, BW = 184;
+const SIGNS = ['#E2574C', '#2F7FD1', '#2E9E7B', '#8A55C7', '#E08A1E', '#D14B8F', '#1E9AA8', '#5B6AD0'];
+const WALLS = ['#FFE2B8', '#FFD0C7', '#CDEBD8', '#D7E3FF', '#FFF1A8', '#F3D4F0', '#D2F0F0', '#FFDCC2'];
+const NAMES = [['BAKERY', 'BOOKS', 'PIZZA', 'FLOWERS'], ['COFFEE', 'BARBER', 'TOYS', 'BIKES'], ['TACOS', null, 'MUSIC', 'PETS'], ['SHOES', 'DINER', 'LAUNDRY', 'GYM']];
+const PR = 2, PC = 1;                                           // the painter: third row, second shop
+const PX = X0 + PC * CELL + 8, PTOP = ROW0 + PR * ROWH + 18, PGY = ROW0 + PR * ROWH + 150;   // 348, 848, 980
+const FOCUS = [PX + BW / 2, PTOP + 60];                         // 440, 908
+
+function tree(x, gy, s, t, col = '#5FAE5A') {
+  const sway = Math.sin(t * 1.3 + x * 0.013) * 0.035;
+  ctx.save(); ctx.translate(x, gy); ctx.rotate(sway);
+  rr(-5 * s, -58 * s, 10 * s, 60 * s, 3); fs('#9A6A43', 3);
+  ctx.beginPath();
+  for (const [bx, by, br] of [[-22, -70, 24], [20, -72, 26], [0, -96, 30], [-2, -64, 26]]) { ctx.moveTo((bx + br) * s, by * s); ctx.arc(bx * s, by * s, br * s, 0, TAU); }
+  ctx.lineWidth = 7; ctx.strokeStyle = INK; ctx.stroke(); ctx.fillStyle = col; ctx.fill();
+  circ(-8 * s, -98 * s, 9 * s); ctx.fillStyle = 'rgba(255,255,255,.22)'; ctx.fill();
+  ctx.restore();
+}
+function house(x, y0, i) {                                      // plain house, no sign
+  const top = y0 + 46, gy = y0 + 150, w = 150, col = ['#EFE3D0', '#E3E9EE', '#EDE0E6', '#E4EBDD'][i % 4];
+  rr(x + 25, top, w, gy - top, 2); fs(col, 4);
+  ctx.beginPath(); ctx.moveTo(x + 13, top + 2); ctx.lineTo(x + 100, top - 44); ctx.lineTo(x + 187, top + 2); ctx.closePath(); fs(['#B9785E', '#7F8FA6', '#A86F86', '#7C9A72'][i % 4], 4);
+  rr(x + 44, top + 26, 40, 36, 3); fs('#CFEFFF', 3); rr(x + 116, top + 50, 36, gy - top - 50, 3); fs('#8D6B55', 3);
+}
+function shop(x, y0, name, k, t) {
+  const top = y0 + 18, gy = y0 + 150, wall = WALLS[k % 8], sign = SIGNS[(k * 3 + 1) % 8], roof = k % 3;
+  if (roof === 1) { ctx.beginPath(); ctx.moveTo(x - 2, top + 2); ctx.lineTo(x + BW / 2, top - 26); ctx.lineTo(x + BW + 2, top + 2); ctx.closePath(); fs(sign, 4); }
+  if (roof === 2) { rr(x + 46, top - 16, BW - 92, 20, 3); fs(wall, 4); }
+  rr(x, top, BW, gy - top, 3); fs(wall, 4);
+  if (roof === 0) { rr(x - 5, top - 8, BW + 10, 13, 3); fs('#FFFFFF', 4); }
+  rr(x + 9, top + 10, BW - 18, 46, 9); fs(sign, 3.5);                               // sign board
+  ctx.font = '600 31px "Fredoka"'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.letterSpacing = '1px';
+  const tw = ctx.measureText(name).width, q = Math.min(1, (BW - 40) / tw);
+  ctx.save(); ctx.translate(x + BW / 2, top + 44); ctx.scale(q, 1); ctx.fillStyle = '#FFFFFF'; ctx.fillText(name, 0, 0); ctx.restore(); ctx.letterSpacing = '0px';
+  ctx.save(); rr(x - 4, top + 62, BW + 8, 24, 4); ctx.clip();                        // striped awning
+  for (let i = 0; i < 9; i++) { ctx.fillStyle = i % 2 ? '#FFFFFF' : sign; ctx.fillRect(x - 4 + i * 22, top + 62, 22, 24); }
+  ctx.restore(); rr(x - 4, top + 62, BW + 8, 24, 4); fs(null, 3.5);
+  rr(x + 14, top + 96, 92, gy - top - 104, 3); fs('#CFEFFF', 3); ln(x + 60, top + 96, x + 60, gy - 8, 3);
+  rr(x + BW - 62, top + 92, 44, gy - top - 92, 3); fs(sign, 3); circ(x + BW - 28, top + 116, 3); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+}
+function painterShop(t) {                                        // drab wall, tiny sign, a tree in front of it
+  const x = PX, top = PTOP, gy = PGY;
+  rr(x, top, BW, gy - top, 3); fs('#EDE6D8', 4);
+  rr(x - 5, top - 8, BW + 10, 13, 3); fs('#DDD5C6', 4);
+  rr(x + 82, top + 16, 92, 24, 4); fs('#D9D2C3', 2.5, '#9A9386');                   // the tiny sign
+  ctx.font = '600 14px "Poppins"'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.letterSpacing = '1px'; ctx.fillStyle = '#857E72'; ctx.fillText('PAINTING', x + 128, top + 33); ctx.letterSpacing = '0px';
+  rr(x + 14, top + 62, 78, gy - top - 70, 3); fs('#D6E6EA', 3); ln(x + 53, top + 62, x + 53, gy - 8, 3);
+  rr(x + 104, top + 58, 40, gy - top - 58, 3); fs('#A99C8B', 3); circ(x + 136, top + 98, 3); ctx.fillStyle = '#FFFFFF'; ctx.fill();
+  ln(x + 156, gy - 2, x + 164, top + 44, 3.5); ln(x + 172, gy - 2, x + 180, top + 44, 3.5);       // ladder
+  for (let i = 0; i < 5; i++) { const k = 0.12 + i * 0.19; ln(x + 156 + 8 * k, gy - 2 - (gy - 46 - top) * k, x + 172 + 8 * k, gy - 2 - (gy - 46 - top) * k, 3); }
+  rr(x + 146, gy - 16, 14, 15, 2); fs('#F0645A', 2.5); rr(x + 124, gy - 13, 12, 12, 2); fs('#2FB3A3', 2.5);   // paint cans
+}
+const WALKERS = [], CARS = [];
+{ const r = rng(77); const cols = ['#E2574C', '#2F7FD1', '#2E9E7B', '#8A55C7', '#E08A1E', '#D14B8F', '#1E9AA8'], skins = ['#F6D7B8', '#D9A877', '#A8754C', '#7A5038'];
+  for (let row = 0; row < 4; row++) {
+    for (let i = 0; i < 3; i++) WALKERS.push({ row, x0: r() * 1200, v: (26 + r() * 22) * (r() < 0.5 ? -1 : 1), col: cols[Math.floor(r() * 7)], skin: skins[Math.floor(r() * 4)], ph: r() * 6 });
+    for (let i = 0; i < 2; i++) CARS.push({ row, x0: i * 640 + r() * 300, v: (row % 2 ? -1 : 1) * (120 + r() * 50), col: cols[Math.floor(r() * 7)] });
+  } }
+function person(x, fy, h, col, skin, t, dir, ph = 0, phone = false) {
+  const a = t * 8.5 + ph, sw = Math.sin(a) * h * 0.13, bob = Math.abs(Math.cos(a)) * h * 0.03, hip = fy - h * 0.36 - bob;
+  ln(x, hip, x + sw, fy, h * 0.07); ln(x, hip, x - sw, fy, h * 0.07);
+  rr(x - h * 0.14, fy - h * 0.76 - bob, h * 0.28, h * 0.44, h * 0.1); fs(col, h * 0.045);
+  if (phone) { circ(x - dir * h * 0.1, fy - h * 0.93 - bob, h * 0.08); fs('#6B4A3A', h * 0.04); }                      // hair bun
+  circ(x, fy - h * 0.87 - bob, h * 0.125); fs(skin, h * 0.045);
+  if (phone) {
+    const hx = x + dir * h * 0.25, hy = fy - h * 0.6 - bob;
+    ln(x + dir * h * 0.06, fy - h * 0.66 - bob, hx, hy, h * 0.06);
+    ctx.save(); ctx.translate(hx + dir * h * 0.03, hy - h * 0.05); ctx.rotate(dir * 0.25); rr(-h * 0.045, -h * 0.085, h * 0.09, h * 0.17, h * 0.02); fs('#BFEFFF', h * 0.035); ctx.restore();
+    circ(x + dir * h * 0.05, fy - h * 0.86 - bob, h * 0.018); ctx.fillStyle = INK; ctx.fill();                          // eye, on the phone
+  }
+}
+function car(x, y, col, dir) {
+  rr(x - 20, y - 40, 40, 20, 7); fs('#DFF3FF', 3); rr(x - 38, y - 26, 76, 20, 8); fs(col, 3);
+  circ(x - 20, y - 5, 7.5); fs('#3A3340', 2.5); circ(x + 20, y - 5, 7.5); fs('#3A3340', 2.5);
+  circ(x + dir * 34, y - 17, 3); ctx.fillStyle = '#FFF4B8'; ctx.fill();
+}
+const FLOWERS = []; { const r = rng(5); for (let i = 0; i < 70; i++) FLOWERS.push([r() * 1080, 1250 + r() * 660, ['#FFFFFF', '#FFD27A', '#F5A39A', '#FFFFFF'][Math.floor(r() * 4)]]); }
+const PARKTREES = [[70, 1330, 1.1], [1010, 1300, 1.2], [960, 1520, 1.0], [90, 1560, 0.9], [200, 1900, 1.3], [640, 1860, 1.2], [860, 1800, 1.4], [420, 1790, 1.0], [1030, 1700, 1.1]];
+const pathY = x => 1600 + 46 * Math.sin(x / 210 + 0.6);
+
+function world(t) {
+  // sky, sun, clouds, far hills
+  const g = ctx.createLinearGradient(0, 0, 0, 470); g.addColorStop(0, '#A9DBFF'); g.addColorStop(1, '#E6F5FF'); ctx.fillStyle = g; ctx.fillRect(-300, -300, 1680, 780);
+  circ(905, 108, 54); ctx.fillStyle = '#FFE08A'; ctx.fill(); circ(905, 108, 54 + 10 + 4 * Math.sin(t * 2)); ctx.strokeStyle = 'rgba(255,224,138,.5)'; ctx.lineWidth = 6; ctx.stroke();
+  for (const [x0, y, s, v] of [[100, 96, 1.0, 14], [560, 60, 0.8, 9], [820, 420, 0.7, 12], [300, 432, 0.6, 16]]) {
+    const x = wrap(x0 + v * t, -160, 1240); ctx.fillStyle = '#FFFFFF'; ctx.beginPath();
+    for (const [bx, by, br] of [[-46, 6, 26], [-12, -10, 34], [28, -2, 28], [56, 10, 20]]) { ctx.moveTo(x + (bx + br) * s, y + by * s); ctx.arc(x + bx * s, y + by * s, br * s, 0, TAU); }
+    ctx.fill();
+  }
+  ctx.fillStyle = '#9CD08C'; ctx.beginPath(); ctx.ellipse(200, 470, 420, 70, 0, 0, TAU); ctx.ellipse(860, 480, 480, 80, 0, 0, TAU); ctx.fill();
+  // rows
+  for (let row = 0; row < 4; row++) {
+    const y0 = ROW0 + row * ROWH, gy = y0 + 150;
+    ctx.fillStyle = '#BFE0B2'; ctx.fillRect(-300, y0, 1680, 150);
+    ctx.fillStyle = '#E9E2D4'; ctx.fillRect(-300, gy, 1680, 18); ctx.fillStyle = '#8B8794'; ctx.fillRect(-300, gy + 18, 1680, 32);
+    ctx.fillStyle = INK; ctx.fillRect(-300, gy - 2, 1680, 4);
+    ctx.fillStyle = '#FFFFFF'; for (let i = -3; i < 16; i++) ctx.fillRect(i * 96 + 20, gy + 32, 44, 4);
+    house(X0 - CELL + 8, y0, row); house(X0 + 4 * CELL + 8, y0, row + 2);
+    for (let c = 0; c < 4; c++) { if (row === PR && c === PC) painterShop(t); else shop(X0 + c * CELL + 8, y0, NAMES[row][c], row * 4 + c, t); }
+    // street trees between some shops (never over a sign), and the one that hides the painter's sign
+    for (const [r2, tx, s] of [[0, 338, 0.55], [1, 742, 0.6], [3, 540, 0.55], [1, 140, 0.6], [2, 940, 0.6], [0, 942, 0.55], [3, 138, 0.6]]) if (r2 === row) tree(tx, gy + 4, s, t, '#6DBB63');
+    if (row === PR) tree(PX + 96, gy + 6, 1.06, t);
+    for (const w of WALKERS) if (w.row === row) person(wrap(w.x0 + w.v * t, -80, 1160), gy + 13, 62, w.col, w.skin, t, Math.sign(w.v), w.ph);
+    if (row === PR && t >= T.walk - 0.2) { const hx = 196 + 196 * (t - T.walk); if (hx < 1200) person(hx, gy + 15, 84, C.sun, '#F6D7B8', t, 1, 1.2, true); }
+    for (const c of CARS) if (c.row === row) car(wrap(c.x0 + c.v * t, -120, 1200), gy + 48, c.col, Math.sign(c.v));
+  }
+  // park under the town: background and motion only
+  ctx.fillStyle = '#A9D99A'; ctx.fillRect(-300, ROW0 + 4 * ROWH, 1680, 1100);
+  ctx.fillStyle = INK; ctx.fillRect(-300, ROW0 + 4 * ROWH - 2, 1680, 4);
+  for (const [x, y, col] of FLOWERS) { circ(x, y, 5); ctx.fillStyle = col; ctx.fill(); }
+  ctx.beginPath(); for (let x = -300; x <= 1380; x += 30) ctx.lineTo(x, pathY(x)); ctx.lineWidth = 58; ctx.strokeStyle = '#EAD9B0'; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(300, 1770, 170, 62, 0, 0, TAU); fs('#8FD3F4', 4);
+  for (let i = 0; i < 2; i++) { const k = ((t * 0.4 + i * 0.5) % 1); ctx.beginPath(); ctx.ellipse(300, 1770, 30 + 110 * k, 10 + 40 * k, 0, 0, TAU); ctx.strokeStyle = `rgba(255,255,255,${0.7 * (1 - k)})`; ctx.lineWidth = 3; ctx.stroke(); }
+  for (const [i, v, col, skin] of [[0, 34, '#2F7FD1', '#D9A877'], [1, -28, '#D14B8F', '#F6D7B8'], [2, 40, '#E08A1E', '#7A5038']]) { const x = wrap(i * 420 + v * t, -80, 1160); person(x, pathY(x) + 8, 70, col, skin, t, Math.sign(v), i * 2.1); }
+  for (const [x, y, s] of PARKTREES) tree(x, y, s, t, '#58A857');
+}
+
+// ── camera: [focus x, focus y, anchor x, anchor y, zoom]
+const WIDE = [540, 830, 540, 830, 1], CLOSE = [FOCUS[0], FOCUS[1] + 10, 540, 950, 2.3];
+const mixv = (a, b, k) => a.map((v, i) => lerp(v, b[i], k));
+function cam(t) {
+  let c;
+  if (t < T.reveal) c = mixv(WIDE, [540, 830, 540, 830, 1.085], seg(t, 0, T.up));
+  else if (t < T.out) { c = mixv([540, 830, 540, 830, 1.085], CLOSE, E.inOutCubic(seg(t, T.reveal, T.zoomed))); c[0] += 34 * E.inOutCubic(seg(t, T.walk, T.out)); c[4] -= 0.18 * E.inOutCubic(seg(t, T.walk, T.out)) * (t >= T.walk ? 1 : 0); }
+  else c = mixv([CLOSE[0] + 34, CLOSE[1], 540, 950, 2.12], [540, 830, 540, 830, 1 + 0.008 * Math.max(0, t - T.wide)], E.inOutCubic(seg(t, T.out, T.wide)));
+  let punch = 0; for (const k of [...TICKS, T.tiny, T.walk, T.ask]) if (t >= k) punch += 0.022 * Math.exp(-(t - k) * 7);
+  if (t >= T.up) punch -= 0.03 * Math.exp(-(t - T.up) * 6);
+  c[4] *= 1 + punch;
+  const sh = t >= T.up ? 12 * Math.exp(-(t - T.up) * 7) : 0;
+  c[2] += sh * Math.sin(t * 71); c[3] += sh * Math.cos(t * 57);
+  return c;
+}
+
+// ── overlays
+function title() {
+  ctx.save(); ctx.shadowColor = 'rgba(43,27,51,.25)'; ctx.shadowBlur = 22; ctx.shadowOffsetY = 8; rr(140, 176, 800, 220, 30); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
+  ctx.save(); rr(140, 176, 800, 220, 30); ctx.clip(); ctx.fillStyle = C.coral; ctx.fillRect(140, 176, 16, 220); ctx.restore();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '700 30px "Poppins"'; ctx.letterSpacing = '8px'; ctx.fillStyle = C.red; ctx.fillText('PAINTERS:', 552, 236); ctx.letterSpacing = '0px';
+  ctx.font = '500 55px "Fredoka"';
+  const a = 'Can you ', b = 'find the painter', wa = ctx.measureText(a).width, wb = ctx.measureText(b).width, x0 = 548 - (wa + wb) / 2;
+  ctx.textAlign = 'left'; ctx.fillStyle = INK; ctx.fillText(a, x0, 304); ctx.fillStyle = C.red; ctx.fillText(b, x0 + wa, 304);
+  ctx.textAlign = 'center'; ctx.fillStyle = INK; ctx.fillText('in this town?', 548, 368);
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = Math.min(1.1, sp(t - c.t0, { freq: 3.0, damp: 0.66 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  ctx.font = '500 54px "Fredoka"';
+  const i = c.text.indexOf(c.hi), pre = c.text.slice(0, i), post = c.text.slice(i + c.hi.length);
+  const w0 = ctx.measureText(pre).width, w1 = ctx.measureText(c.hi).width, w2 = ctx.measureText(post).width, tw = w0 + w1 + w2, w = tw + 84, h = 112;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, (c.y || 1325) + (1 - Math.min(1, k)) * 24); ctx.scale(0.92 + 0.08 * k, 0.92 + 0.08 * k);
+  rr(-w / 2, -h / 2, w, h, 28); ctx.fillStyle = 'rgba(28,2,40,.86)'; ctx.fill();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; let x = -tw / 2;
+  ctx.fillStyle = C.cream; ctx.fillText(pre, x, 19); x += w0; ctx.fillStyle = C.sun; ctx.fillText(c.hi, x, 19); x += w1; ctx.fillStyle = C.cream; ctx.fillText(post, x, 19);
+  ctx.restore();
+}
+function badge(t) {                                              // the countdown: 5 on frame 0, then 4 3 2 1
+  if (t >= T.up + 0.25) return;
+  let n = 5, last = -9; TICKS.forEach((k, i) => { if (t >= k) { n = 5 - i; last = k; } });
+  const done = t >= T.up, pop = last > 0 ? 0.2 * Math.exp(-(t - last) * 9) : 0, fade = 1 - seg(t, T.up, T.up + 0.25), left = clamp(1 - (t - T.count) / 5);
+  ctx.save(); ctx.globalAlpha = fade; ctx.translate(500, 1466); ctx.scale(1 + pop, 1 + pop);
+  circ(0, 0, 58); ctx.fillStyle = 'rgba(28,2,40,.86)'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, 0, 49, -Math.PI / 2, -Math.PI / 2 + TAU * left); ctx.lineWidth = 8; ctx.strokeStyle = n <= 2 && t >= T.count ? C.coral : C.sun; ctx.lineCap = 'round'; ctx.stroke();
+  ctx.font = '600 58px "Fredoka"'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = C.cream; ctx.fillText(done ? '0' : String(n), 0, 20);
+  ctx.restore();
+}
+function searchBar(t) {
+  if (t < T.out) return;
+  const k = Math.min(1.06, sp(t - T.out - 0.1, { freq: 2.8, damp: 0.7 })); if (k <= 0) return;
+  const n = Math.floor(clamp((t - T.type0) / (T.type1 - T.type0)) * SEARCH.length + 1e-6), str = SEARCH.slice(0, n);
+  ctx.save(); ctx.globalAlpha = Math.min(1, k * 2); ctx.translate(500, 1436 + (1 - Math.min(1, k)) * 30);
+  ctx.save(); ctx.shadowColor = 'rgba(43,27,51,.3)'; ctx.shadowBlur = 20; ctx.shadowOffsetY = 8; rr(-320, -52, 640, 104, 52); ctx.fillStyle = '#FFFFFF'; ctx.fill(); ctx.restore();
+  rr(-320, -52, 640, 104, 52); fs(null, 4);
+  circ(-262, -3, 17); fs(null, 6, C.coral); ln(-250, 10, -236, 25, 6, C.coral);
+  ctx.font = '500 46px "Fredoka"'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = INK; ctx.fillText(str, -214, 16);
+  const cw = ctx.measureText(str).width; if (n < SEARCH.length || Math.floor(t * 2.5) % 2 === 0) { ctx.fillStyle = C.coral; ctx.fillRect(-214 + cw + 5, -24, 4, 48); }
+  ctx.restore();
+}
+function ring(t) {                                               // drawn in world space around the painter's shop
+  if (t < T.reveal || t >= T.out + 0.3) return;
+  const k = E.outCubic(seg(t, T.reveal, T.reveal + 0.55)), a = 1 - seg(t, T.out, T.out + 0.3);
+  ctx.save(); ctx.globalAlpha = a; ctx.beginPath(); ctx.ellipse(FOCUS[0], FOCUS[1] + 6, 128, 96, -0.06, -1.2, -1.2 + TAU * 1.04 * k);
+  ctx.lineWidth = 7; ctx.strokeStyle = C.coral; ctx.lineCap = 'round'; ctx.stroke(); ctx.restore();
+}
+
+// ── end card: plum rises from the bottom
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut)), top = 1920 - 1960 * k;
+  ctx.save(); ctx.beginPath(); ctx.rect(0, top, 1080, 1960); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  ctx.fillStyle = C.coral; ctx.fillRect(0, top, 1080, 10);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780), ga = seg(t, T.end, T.shut); glow.addColorStop(0, `rgba(240,100,90,${0.32 * ga})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 968); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1174); });
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 0.3;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = '#A9D99A'; ctx.fillRect(0, 0, 1080, 1920);
+  if (t < T.shut) {
+    const c = cam(t);
+    ctx.save(); ctx.translate(c[2], c[3]); ctx.scale(c[4], c[4]); ctx.translate(-c[0], -c[1]); world(t); ring(t); ctx.restore();
+    const dim = 0.2 * seg(t, T.up, T.up + 0.15) * (1 - seg(t, T.reveal, T.reveal + 0.3)) + 0.14 * seg(t, T.out, T.wide);
+    if (dim > 0) { ctx.fillStyle = `rgba(28,2,40,${dim})`; ctx.fillRect(0, 0, 1080, 1920); }
+    const fl = t >= T.up ? 0.5 * Math.exp(-(t - T.up) * 9) : 0; if (fl > 0.01) { ctx.fillStyle = `rgba(255,255,255,${fl})`; ctx.fillRect(0, 0, 1080, 1920); }
+    title(); CAPS.forEach(cp => caption(cp, t)); badge(t); searchBar(t);
+  }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', '800 44px "Nunito"', '500 54px "Fredoka"', '600 31px "Fredoka"', '700 30px "Poppins"', '600 32px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
