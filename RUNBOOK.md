@@ -4,7 +4,7 @@ This repo holds everything the nightly run needs. Each night (about 1:30 AM Moun
 
 Read this whole file before starting. The rules here are Kai's, not suggestions.
 
-**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook, caption and social skills; 2d: the animation skills; 3b: sound) → 5. make → 6. save and schedule → 7. record and report.
+**Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook, caption and social skills; 2d: the animation skills; 2e: score the hook + the outside skills; 3b: sound) → 5. make → 6. save and schedule → 7. record and report.
 
 ---
 
@@ -109,6 +109,30 @@ Kai: "i just uploaded a new skill set ... i want you to use these / Take inspira
 - All of sections 2, 2b, 2b-2 and 4 still apply: no invented stats or results, the subject is something Horizon Scales does, no pitch, frame safety. Don't use any skill's ElevenLabs option (under 18).
 - If the plugin isn't loaded in a night's session, say so in the morning message and build in the kit as usual.
 - **Setup notes from the first test (Nov 11, `work/2026-11-11-map-test/` is a working example with `map-route`):** don't run the plugin's `kit/setup.sh` as written (it runs `playwright install`, which this machine must not do). Instead, in the plugin's `kit/` folder: `npm install --no-save three@0.169.0 @fontsource/montserrat@5.1.0`; get GSAP from npm (`npm install gsap@3.12.5` somewhere, copy `node_modules/gsap/dist/gsap.min.js` to `kit/vendor/gsap.min.js`; cdnjs is blocked); and export `HYPERFRAMES_BROWSER_PATH` = the pre-installed Chromium (`node -e "console.log(require('playwright').chromium.executablePath())"`) before running a skill's `build.py`. A map render takes about 3 minutes; run it in the foreground (background jobs get killed). To put a skill's clip inside our frame (title, captions, end card), extract its frames to JPGs and draw them in `index.html` at the clip's own speed; slowing a 30 fps clip down ghosts or judders.
+
+## 2e. Outside skills in `kit/skills/` (Kai, Nov 14, 2026: "have it use any relevant skills")
+
+Three skill sets copied from public GitHub repos (details, commits and licenses in `kit/skills/SOURCES.md`). They are plain folders here, not installed skills: open the `SKILL.md` you need with Read and follow it. Same rule as 2c: use them when they make tonight's video better, skip them when they don't. Kai's rules (sections 2, 2b, 4) win over anything in them.
+
+**Every night, before rendering: score the hook.**
+- Run `python3 -I kit/skills/instagram-agent/skills/ig-reel/hookscore.py --hook "<tonight's hook>"` from the repo root.
+- Write 2–3 hook options (with `viral-hook-creator` when it helps), score each, and use the strongest one that still follows Kai's rules. A low score is advice, not a blocker; never add a made-up number or claim to raise it.
+- Put the scores in `brief.md` and in the morning message ("Hook score: 82").
+- If the script can't run in the session, read `ig-reel/SKILL.md` and `ig-reel/hooks.json` and score by hand against the same five checks (length, specificity, stakes, frontload, address). Say "scored by hand" in the morning message.
+
+**Use when they help:**
+| Folder | Use it for |
+|---|---|
+| `instagram-agent/skills/ig-caption/` | Check the Instagram caption: the first 125 characters must work on their own (that's what shows before "...more"). |
+| `instagram-agent/skills/ig-human/` | Clean AI-sounding wording out of the caption and on-screen lines. |
+| `instagram-agent/skills/ig-reel/` | Its beat sheet (`beats.py`) for timing cards to the hook and the beat. |
+| `instagram-agent/skills/ig-audit/` | On Sunday scorecards: rank past posts against our own average from `log.md`. |
+| `remotion/` | Rules for building a video as React code with Remotion, for a night that uses Remotion instead of the canvas kit. Start with `remotion-best-practices/SKILL.md`. |
+| `remocn/` | Ready-made Remotion animations, transitions and backgrounds (MIT). Start with `remocn/SKILL.md`. Install components with npm/shadcn as it says; don't use its hosted MCP server. |
+
+**Never use:** `ig-dm`, `ig-comment`, `ig-reply`, `ig-story`'s DM funnel or anything that contacts other accounts. That's outreach, and there's none before Apr 13, 2027. Don't use `ig-viral` to copy another creator's video.
+
+A Remotion or Remocn video goes through the same gates as any other (1080×1920, 15–30 s, zone overlay, loudness, no black frames, plum end card with the logo). Remotion is free for us while Horizon Scales has 3 or fewer people.
 
 ## 3b. Sound (Kai, Nov 11, 2026: "You kind of keep using the same beeps and stuff for each video ... I don't think it sounds very good anyway.")
 
