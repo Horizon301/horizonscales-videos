@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Three Roofers — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Josefin Sans"; src: url(fonts/JosefinSans-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Josefin Sans"; src: url(fonts/JosefinSans-400.woff2) format("woff2"); font-weight: 400; }
+  @font-face { font-family: "Fraunces"; src: url(fonts/Fraunces-600i.woff2) format("woff2"); font-weight: 600; font-style: italic; }
+  @font-face { font-family: "DM Mono"; src: url(fonts/DMMono-500.woff2) format("woff2"); font-weight: 500; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #22454A; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, RINGS, DRIPS, HITS } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, rng, lerp, clamp, TAU, stepped, mix } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+// mid-century flat cartoon look: teal night wall, mustard, brick, cream, a thin brush-ink line that sits a little off
+// the flat colour shapes, scratchy dry-brush texture, characters on twos (12 fps "limited animation")
+const INK = '#1D1A17', TEAL = '#2F5D62', TEAL2 = '#22454A', MUST = '#E3A93B', BRICK = '#BF4E30', CREAM = '#F2E8D0', SKIN = '#EDB79E', SKY = '#17293A';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+
+// frame safety (Kai, Nov 5): hook panel at the top (y 176–400); the room scene y 430–1230 with the call card and the
+// balloon right of her but left of x 910 and above y 960; captions centred at x 500 around y 1340 (≤ 640 wide);
+// nothing that matters right of x 864 below y 920 or under y 1630. Rug pattern and lamp only in the edges.
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+const poly = (pts) => { ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath(); };
+// flat shape + a thin ink line drawn slightly off it (the mid-century "loose line" look)
+function shape(pts, fill, line = true, off = [5, -4]) {
+  poly(pts); ctx.fillStyle = fill; ctx.fill();
+  if (!line) return;
+  ctx.save(); ctx.translate(off[0], off[1]); poly(pts); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke(); ctx.restore();
+}
+function blob(x, y, r, fill, line = true) { circ(x, y, r); ctx.fillStyle = fill; ctx.fill(); if (line) { circ(x + 4, y - 3, r); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke(); } }
+
+// ── dry-brush texture (seeded, the same every frame)
+const TEX = document.createElement('canvas'); TEX.width = 540; TEX.height = 960;
+{ const g = TEX.getContext('2d'), r = rng(7);
+  for (let i = 0; i < 2600; i++) { const x = r() * 540, y = r() * 960, l = 6 + r() * 30, a = r() * 0.5 - 0.25;
+    g.strokeStyle = `rgba(${r() < 0.5 ? '255,255,255' : '0,0,0'},${0.05 + r() * 0.08})`; g.lineWidth = 0.6 + r() * 1.2;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); g.stroke(); } }
+function texture() { ctx.save(); ctx.globalAlpha = 0.9; ctx.drawImage(TEX, 0, 0, 1080, 1920); ctx.restore(); }
+
+const dayK = t => E.inOutCubic(seg(t, T.day - 0.15, T.day + 0.5));
+const RAIN = []; { const r = rng(5); for (let i = 0; i < 26; i++) RAIN.push([r(), r(), 0.6 + r() * 0.6]); }
+const STARS = []; { const r = rng(9); for (let i = 0; i < 14; i++) STARS.push([60 + r() * 960, 1250 + r() * 600, 5 + r() * 9, r() * 6]); }
+
+// ── the room
+function room(t) {
+  const d = dayK(t);
+  ctx.fillStyle = mix(TEAL2, '#C99A4A', d); ctx.fillRect(0, 0, 1080, 1920);
+  // tilted back wall
+  shape([[90, 420], [1000, 400], [1020, 1250], [70, 1270]], mix(TEAL, '#EBD9A8', d), false);
+  // wallpaper: thin diamond lattice
+  ctx.save(); poly([[90, 420], [1000, 400], [1020, 1250], [70, 1270]]); ctx.clip();
+  ctx.strokeStyle = d > 0.5 ? 'rgba(191,78,48,.18)' : 'rgba(242,232,208,.08)'; ctx.lineWidth = 2;
+  for (let i = -20; i < 30; i++) { ctx.beginPath(); ctx.moveTo(i * 70, 400); ctx.lineTo(i * 70 + 480, 1280); ctx.moveTo(i * 70 + 480, 400); ctx.lineTo(i * 70, 1280); ctx.stroke(); }
+  ctx.restore();
+  // floor + rug (danger zone: pattern only)
+  shape([[70, 1270], [1020, 1250], [1080, 1920], [0, 1920]], mix('#3B2F2A', '#8A5A3C', d), false);
+  shape([[150, 1560], [930, 1540], [1010, 1880], [80, 1900]], mix('#5B3A33', BRICK, d * 0.6), true);
+  for (const [x, y, s, ph] of STARS) { if (y < 1560) continue; star(x, y, s * 0.8, mix('#8E5B4A', MUST, d), t * 0.6 + ph); }
+  // floor lamp in the left edge
+  ctx.strokeStyle = INK; ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(110, 1300); ctx.lineTo(128, 760); ctx.stroke();
+  shape([[70, 760], [190, 752], [160, 660], [100, 664]], d > 0.5 ? CREAM : MUST);
+  if (d < 1) { const g = ctx.createRadialGradient(130, 770, 0, 130, 770, 380); g.addColorStop(0, `rgba(227,169,59,${0.35 * (1 - d)})`); g.addColorStop(1, 'rgba(227,169,59,0)'); ctx.fillStyle = g; ctx.fillRect(0, 400, 600, 800); }
+  win(t, d);
+}
+function star(x, y, s, col, rot) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.beginPath();
+  for (let i = 0; i < 8; i++) { const r = i % 2 ? s * 0.32 : s; ctx.lineTo(Math.cos(i * TAU / 8) * r, Math.sin(i * TAU / 8) * r); }
+  ctx.closePath(); ctx.fillStyle = col; ctx.fill(); ctx.restore();
+}
+function win(t, d) {                                     // skewed window behind her, rain at night, sun + ladder in the morning
+  const P = [[150, 470], [420, 458], [430, 700], [140, 712]];
+  shape(P, mix(SKY, '#F7D27A', d), false);
+  ctx.save(); poly(P); ctx.clip();
+  if (d < 1) {
+    ctx.globalAlpha = 1 - d; circ(370, 520, 26); ctx.fillStyle = CREAM; ctx.fill(); circ(382, 512, 24); ctx.fillStyle = SKY; ctx.fill();
+    ctx.strokeStyle = 'rgba(190,220,230,.55)'; ctx.lineWidth = 3;
+    for (const [rx, ry, sp_] of RAIN) { const y = 440 + ((ry * 300 + t * 520 * sp_) % 300); const x = 140 + rx * 300; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x - 8, y + 30); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  if (d > 0) {
+    ctx.globalAlpha = d; star(220, 540, 46 + 4 * Math.sin(t * 2), '#FFF1C2', t * 0.4); blob(220, 540, 30, '#FFE08A', false);
+    // a ladder top leans on the wall outside
+    const ly = lerp(760, 470, E.outBack(seg(t, T.day + 0.3, T.day + 0.9)));
+    ctx.strokeStyle = BRICK; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(330, ly); ctx.lineTo(310, ly + 300); ctx.moveTo(395, ly); ctx.lineTo(380, ly + 300); ctx.stroke();
+    ctx.lineWidth = 7; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(328 - i * 4, ly + 30 + i * 56); ctx.lineTo(393 - i * 3, ly + 30 + i * 56); ctx.stroke(); }
+    ctx.globalAlpha = 1;
+  }
+  ctx.restore();
+  ctx.save(); ctx.translate(5, -4); poly(P); ctx.lineWidth = 5; ctx.strokeStyle = INK; ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(285, 464); ctx.lineTo(285, 706); ctx.moveTo(145, 590); ctx.lineTo(425, 580); ctx.stroke(); ctx.restore();
+}
+
+// ── the drip and the bucket
+const DX = 548, STAIN_Y = 432, BUCKET_Y = 1150;
+function drip(t) {
+  const d = dayK(t);
+  ctx.save(); ctx.globalAlpha = 1 - d * 0.8;
+  shape([[DX - 60, STAIN_Y - 6], [DX + 50, STAIN_Y - 10], [DX + 34, STAIN_Y + 18], [DX - 20, STAIN_Y + 26]], 'rgba(20,40,44,.55)', false);
+  ctx.restore();
+  if (d >= 1) return;
+  for (const k of DRIPS) {
+    const f = t - (k - 0.55); if (f < 0 || f > 0.9) continue;
+    if (f < 0.55) { const y = STAIN_Y + 24 + (BUCKET_Y - 70 - STAIN_Y) * (f / 0.55) ** 2; ctx.beginPath(); ctx.ellipse(DX, y, 8, 13, 0, 0, TAU); ctx.fillStyle = '#9FD3DE'; ctx.fill(); }
+    else { const g = (f - 0.55) / 0.35; ctx.strokeStyle = `rgba(159,211,222,${1 - g})`; ctx.lineWidth = 4;
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(DX + s * 10, BUCKET_Y - 74); ctx.quadraticCurveTo(DX + s * (20 + 30 * g), BUCKET_Y - 120 - 30 * g, DX + s * (34 + 40 * g), BUCKET_Y - 90 + 40 * g); ctx.stroke(); } }
+  }
+}
+function bucket(t) {
+  const d = dayK(t); let bob = 0; for (const k of DRIPS) { const f = t - k; if (f >= 0 && f < 0.3) bob = Math.max(bob, 1 - f / 0.3); }
+  ctx.save(); ctx.translate(DX, BUCKET_Y); ctx.scale(1 + 0.03 * bob, 1 - 0.03 * bob); ctx.globalAlpha = 1 - d;
+  shape([[-62, -72], [62, -76], [48, 40], [-48, 42]], BRICK);
+  ctx.beginPath(); ctx.ellipse(0, -74, 62, 14, -0.03, 0, TAU); ctx.fillStyle = '#7FB7C2'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = INK; ctx.stroke();
+  ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, -60, 70, Math.PI * 1.08, Math.PI * 1.92); ctx.stroke();
+  ctx.restore();
+}
+
+// ── the homeowner (on twos)
+function homeowner(t) {
+  const ts = stepped(t, 12), happy = E.outCubic(seg(t, T.pick, T.pick + 0.3)), sigh = t >= T.full && t < T.pick ? 1 : 0;
+  const sway = 6 * Math.sin(ts * 2.2), slump = (t >= T.full && t < T.call2 ? 10 : 0) + (t >= T.rings && t < T.pick ? 6 : 0) - happy * 8;
+  ctx.save(); ctx.translate(330 + sway * 0.5, 0);
+  // legs + body (trapezoid sweater), coral like the brand
+  ctx.strokeStyle = INK; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(-28, 1080); ctx.lineTo(-34, 1236); ctx.moveTo(26, 1080); ctx.lineTo(34, 1236); ctx.stroke();
+  shape([[-50, 1232], [-14, 1230], [-14, 1250], [-58, 1252]], INK, false); shape([[18, 1230], [56, 1232], [62, 1252], [18, 1250]], INK, false);
+  shape([[-70, 1100], [72, 1096], [46, 850 + slump], [-44, 852 + slump]], C.coral);
+  shape([[-80, 1104], [82, 1100], [74, 1070], [-74, 1074]], '#D9473D', false);
+  // arm up to the phone at her ear (right side)
+  ctx.strokeStyle = SKIN; ctx.lineWidth = 22; ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.moveTo(40, 880 + slump); ctx.quadraticCurveTo(110, 900 + slump, 74, 790 + slump * 0.5); ctx.stroke();
+  ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(44, 878 + slump); ctx.quadraticCurveTo(114, 898 + slump, 78, 788 + slump * 0.5); ctx.stroke();
+  // other arm: hand on hip, then a little fist pump on the pick-up
+  const pump = happy * (1 - seg(t, T.pick + 1.2, T.pick + 1.6)) * (0.5 + 0.5 * Math.sin(ts * 14));
+  ctx.strokeStyle = SKIN; ctx.lineWidth = 22; ctx.beginPath(); ctx.moveTo(-40, 880 + slump); ctx.lineTo(-92, 960 - pump * 40); ctx.lineTo(-52, 1010 - pump * 120); ctx.stroke(); ctx.lineCap = 'butt';
+  // head
+  const hy = 770 + slump * 0.6, tilt = (sigh ? -0.08 : 0) + 0.04 * Math.sin(ts * 1.7);
+  ctx.save(); ctx.translate(0, hy); ctx.rotate(tilt);
+  shape([[-74, -10], [-66, -78], [0, -100], [66, -74], [76, 8], [56, 30], [-58, 34]], INK, false);   // hair, a bob
+  blob(0, 0, 58, SKIN);
+  shape([[-62, -20], [-40, -70], [20, -78], [60, -40], [10, -44]], INK, false);                      // fringe
+  // face: dot eyes, brows, mouth
+  ctx.fillStyle = INK; circ(-20, 2, 6); ctx.fill(); circ(22, 2, 6); ctx.fill();
+  ctx.lineWidth = 4; ctx.strokeStyle = INK; const bw = sigh ? 0.25 : -0.05 - happy * 0.15;
+  ctx.beginPath(); ctx.moveTo(-34, -16 - bw * 20); ctx.lineTo(-8, -18 + bw * 20); ctx.moveTo(8, -18 + bw * 20); ctx.lineTo(34, -16 - bw * 20); ctx.stroke();
+  ctx.beginPath(); if (happy > 0.5) ctx.arc(0, 18, 16, 0.15, Math.PI - 0.15); else if (sigh) ctx.arc(0, 36, 12, Math.PI + 0.4, -0.4); else { ctx.moveTo(-10, 28); ctx.lineTo(10, 28); } ctx.stroke();
+  ctx.fillStyle = 'rgba(191,78,48,.35)'; circ(-34, 18, 9); ctx.fill(); circ(36, 18, 9); ctx.fill();
+  ctx.restore();
+  // phone at her ear + buzz lines while it rings
+  ctx.save(); ctx.translate(64, hy + 4); ctx.rotate(0.3); shape([[-12, -36], [14, -38], [16, 30], [-10, 32]], '#26303A'); ctx.restore();
+  ctx.restore();
+}
+const ringing = t => RINGS.some(([a, b]) => t >= a && t < b);
+function buzz(t) {
+  if (!ringing(t)) return;
+  const ph = (t * 6) % 1; ctx.strokeStyle = MUST; ctx.lineWidth = 5; ctx.lineCap = 'round';
+  for (let i = 0; i < 3; i++) { const r = 34 + i * 18 + ph * 10; ctx.globalAlpha = 1 - (i + ph) / 3.2; ctx.beginPath(); ctx.arc(400, 790, r, -0.9, 0.5); ctx.stroke(); }
+  ctx.globalAlpha = 1; ctx.lineCap = 'butt';
+}
+
+// ── the call card (which roofer she's calling) and the balloon (what she hears)
+function roofer(t) { return t < T.call2 ? 1 : t < T.call3 ? 2 : 3; }
+function card(t) {
+  if (t < T.call1 - 0.3 || t >= T.three) return;
+  const n = roofer(t), tn = [T.call1, T.call2, T.call3][n - 1];
+  const inK = Math.min(1.06, sp(t - tn + 0.05, { freq: 3, damp: 0.7 }));
+  const nextT = n < 3 ? [T.call2, T.call3][n - 1] : 99;
+  const outK = E.inCubic(seg(t, nextT - 0.35, nextT));
+  ctx.save(); ctx.translate(lerp(1180, 765, Math.min(1, inK)) + 420 * outK, 610); ctx.rotate(-0.05 + 0.02 * Math.sin(t * 1.3));
+  shape([[-140, -150], [140, -146], [146, 150], [-134, 156]], CREAM);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 26px "Josefin Sans"'; ctx.letterSpacing = '4px'; ctx.fillStyle = TEAL; ctx.fillText(t >= T.pick ? 'CONNECTED' : 'CALLING', 0, -96); ctx.letterSpacing = '0px';
+  ctx.font = '600 italic 58px "Fraunces"'; ctx.fillStyle = INK; ctx.fillText('Roofer', 0, -18);
+  ctx.font = '600 92px "Josefin Sans"'; ctx.fillStyle = n === 3 && t >= T.pick ? '#3E8A6A' : BRICK; ctx.fillText('#' + n, 0, 76);
+  // tally of tries
+  for (let i = 0; i < 3; i++) { const x = -60 + i * 60, y = 122, done = i < n - 1 || (i === n - 1 && t >= T.pick);
+    circ(x, y, 14); ctx.fillStyle = i < n - 1 ? BRICK : done ? '#3E8A6A' : i === n - 1 ? MUST : 'rgba(29,26,23,.15)'; ctx.fill(); }
+  // stamp an X as she gives up
+  const xs = n < 3 ? seg(t, nextT - 0.75, nextT - 0.55) : 0;
+  if (xs > 0) { ctx.save(); ctx.scale(1.6 - 0.6 * xs, 1.6 - 0.6 * xs); ctx.globalAlpha = xs; ctx.strokeStyle = BRICK; ctx.lineWidth = 18; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(-80, -70); ctx.lineTo(80, 70); ctx.moveTo(80, -70); ctx.lineTo(-80, 70); ctx.stroke(); ctx.restore(); }
+  ctx.restore();
+}
+function balloon(t) {
+  let kind = null, t0 = 0;
+  for (const [a, b] of RINGS) if (t >= a - 0.1 && t < b + 0.25) { kind = 'ring'; t0 = a; }
+  if (t >= T.full && t < T.call2 - 0.4) { kind = 'full'; t0 = T.full; }
+  if (t >= T.pick && t < T.day) { kind = 'hello'; t0 = T.pick; }
+  if (!kind) return;
+  const q = Math.min(1.08, sp(t - t0 + 0.04, { freq: 3.4, damp: 0.6 }));
+  ctx.save(); ctx.translate(kind === 'full' ? 676 : kind === 'hello' ? 668 : 650, kind === 'full' ? 860 : 880); ctx.scale(q, q);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  if (kind === 'full') {                                  // a recorded message: square grey box, mono type
+    shape([[-190, -50], [190, -54], [194, 46], [-186, 50]], '#D8D2C2');
+    ctx.fillStyle = '#D8D2C2'; poly([[-188, 0], [-216, -34], [-184, -28]]); ctx.fill();
+    ctx.font = '500 28px "DM Mono"'; ctx.fillStyle = INK; ctx.fillText('The mailbox is full.', 0, 10);
+  } else if (kind === 'ring') {
+    shape([[-120, -50], [120, -54], [124, 46], [-116, 50]], 'rgba(242,232,208,.92)');
+    const dots = '.'.repeat(1 + Math.floor(((t - t0) * 4) % 3));
+    ctx.font = '600 italic 46px "Fraunces"'; ctx.fillStyle = TEAL; ctx.fillText('ring' + dots, 0, 14);
+  } else {
+    blob(0, 0, 0.01, CREAM, false);
+    ctx.beginPath(); ctx.ellipse(0, 0, 220, 64, -0.03, 0, TAU); ctx.fillStyle = MUST; ctx.fill();
+    ctx.beginPath(); ctx.ellipse(4, -4, 220, 64, -0.03, 0, TAU); ctx.lineWidth = 3.5; ctx.strokeStyle = INK; ctx.stroke();
+    ctx.fillStyle = MUST; poly([[-170, 20], [-250, -10], [-150, -20]]); ctx.fill();
+    ctx.font = '600 italic 52px "Fraunces"'; ctx.fillStyle = INK; ctx.fillText('Hello, roofing!', 0, 16);
+  }
+  ctx.restore();
+}
+
+// ── the three cards at the end
+function trio(t) {
+  if (t < T.three - 0.2) return;
+  const dim = E.outCubic(seg(t, T.three - 0.2, T.three + 0.2));
+  ctx.fillStyle = `rgba(23,41,58,${0.72 * dim})`; ctx.fillRect(0, 0, 1080, 1920);
+  const items = [['#1', 'Mailbox full', BRICK, false], ['#2', 'No answer', BRICK, false], ['#3', 'Picked up', '#3E8A6A', true]];
+  items.forEach(([n, s, col, ok], i) => {
+    const q = Math.min(1.06, sp(t - T.three - i * 0.18, { freq: 3, damp: 0.68 })); if (q <= 0) return;
+    const x = 262 + i * 278, y = 715, ask = t >= T.ask ? 1 : 0;
+    const pulse = ask ? 1 + 0.035 * Math.sin((t - T.ask) * 6 + i * 2.1) : 1;
+    ctx.save(); ctx.translate(x, y + (1 - Math.min(1, q)) * 140); ctx.rotate((i - 1) * 0.05); ctx.scale(Math.min(1, q) * pulse, Math.min(1, q) * pulse);
+    shape([[-112, -170], [112, -166], [116, 170], [-108, 174]], ok ? '#FFF4D6' : CREAM);
+    ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+    ctx.font = '600 italic 44px "Fraunces"'; ctx.fillStyle = INK; ctx.fillText('Roofer', 0, -98);
+    ctx.font = '600 84px "Josefin Sans"'; ctx.fillStyle = col; ctx.fillText(n, 0, -10);
+    ctx.font = '600 30px "Josefin Sans"'; ctx.fillStyle = INK; ctx.fillText(s, 0, 56);
+    ctx.lineWidth = 12; ctx.lineCap = 'round'; ctx.strokeStyle = col; ctx.beginPath();
+    if (ok) { ctx.moveTo(-34, 112); ctx.lineTo(-8, 138); ctx.lineTo(40, 88); } else { ctx.moveTo(-28, 90); ctx.lineTo(28, 140); ctx.moveTo(28, 90); ctx.lineTo(-28, 140); }
+    ctx.stroke(); ctx.lineCap = 'butt';
+    if (ok) { shape([[-112, -216], [112, -218], [114, -174], [-110, -172]], MUST); ctx.font = '600 22px "Josefin Sans"'; ctx.letterSpacing = '2px'; ctx.fillStyle = INK; ctx.fillText('GOT THE JOB', 2, -186); ctx.letterSpacing = '0px'; }
+    ctx.restore();
+  });
+}
+
+// ── camera on the room: [focus x, focus y, zoom]
+function cam(t) {
+  let z = 1, fx = 540, fy = 830;
+  const a = E.inOutCubic(seg(t, 2.0, 3.0)) * (1 - E.inOutCubic(seg(t, 13.6, 14.4)));
+  z += 0.07 * a; fx = lerp(fx, 600, a); fy = lerp(fy, 800, a);
+  let punch = 0; for (const k of HITS) if (t >= k) punch += 0.03 * Math.exp(-(t - k) * 8);
+  z *= 1 + punch;
+  return [fx + 5 * Math.sin(t * 0.6), fy + 4 * Math.sin(t * 0.8), z];
+}
+
+// ── overlays
+function title() {
+  shape([[152, 196], [952, 188], [956, 410], [148, 416]], BRICK, false);
+  shape([[140, 178], [940, 172], [944, 396], [136, 400]], CREAM);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 30px "Josefin Sans"'; ctx.letterSpacing = '8px'; ctx.fillStyle = BRICK; ctx.fillText('ROOFERS:', 544, 236); ctx.letterSpacing = '0px';
+  ctx.font = '600 54px "Josefin Sans"'; ctx.fillStyle = INK; ctx.fillText('3 roofers got her call.', 540, 304);
+  ctx.font = '600 italic 64px "Fraunces"'; ctx.fillStyle = TEAL; ctx.fillText('Which one are you?', 540, 374);
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = c.t0 === 0 ? 1 : Math.min(1.1, sp(t - c.t0, { freq: 3.2, damp: 0.66 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  let fsz = 50; ctx.font = `600 ${fsz}px "Josefin Sans"`;
+  if (ctx.measureText(c.text).width > 600) { fsz = Math.floor(50 * 600 / ctx.measureText(c.text).width); ctx.font = `600 ${fsz}px "Josefin Sans"`; }
+  const i = c.text.indexOf(c.hi), pre = c.text.slice(0, i), post = c.text.slice(i + c.hi.length);
+  const w0 = ctx.measureText(pre).width, w1 = ctx.measureText(c.hi).width, w2 = ctx.measureText(post).width, tw = w0 + w1 + w2, w = tw + 76, h = 100;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1340 + (1 - Math.min(1, k)) * 22); ctx.rotate(-0.012);
+  shape([[-w / 2, -h / 2], [w / 2, -h / 2 - 3], [w / 2 + 3, h / 2], [-w / 2 + 2, h / 2 + 2]], INK, false);
+  ctx.save(); ctx.translate(-6, -6); shape([[-w / 2, -h / 2], [w / 2, -h / 2 - 3], [w / 2 + 3, h / 2], [-w / 2 + 2, h / 2 + 2]], CREAM, false); ctx.restore();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; let x = -tw / 2 - 6;
+  const by = fsz * 0.36 - 2;
+  ctx.fillStyle = INK; ctx.fillText(pre, x, by); x += w0; ctx.fillStyle = BRICK; ctx.fillText(c.hi, x, by); x += w1; ctx.fillStyle = INK; ctx.fillText(post, x, by);
+  ctx.restore();
+}
+
+// ── end card: plum slides in from the right like a page turn
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut)), left = 1080 - 1120 * k;
+  ctx.save(); ctx.beginPath(); ctx.rect(left, 0, 1200, 1920); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  ctx.fillStyle = MUST; ctx.fillRect(left, 0, 10, 1920);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780), ga = seg(t, T.end, T.shut); glow.addColorStop(0, `rgba(240,100,90,${0.32 * ga})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 968); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1174); });
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 0.8;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = TEAL2; ctx.fillRect(0, 0, 1080, 1920);
+  if (t < T.shut) {
+    const [fx, fy, z] = cam(t);
+    ctx.save(); ctx.translate(540, 830); ctx.scale(z, z); ctx.translate(-fx, -fy);
+    room(t); drip(t); bucket(t); homeowner(t); buzz(t); card(t); balloon(t);
+    ctx.restore();
+    const flash = t >= T.day - 0.12 && t < T.day + 0.25 ? 1 - Math.abs(t - T.day + 0.02) / 0.25 : 0;
+    if (flash > 0) { ctx.fillStyle = `rgba(255,224,138,${0.75 * flash})`; ctx.fillRect(0, 0, 1080, 1920); }
+    trio(t);
+    texture();
+    title(); CAPS.forEach(cp => caption(cp, t));
+  }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', '800 44px "Nunito"', '600 54px "Josefin Sans"', '400 30px "Josefin Sans"', 'italic 600 64px "Fraunces"', '500 34px "DM Mono"', '600 32px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
