@@ -22,33 +22,45 @@ Watch rate = average watch time ÷ length. Engagement = (likes + comments + shar
 
 | Video | App | Posted | Views | Watch rate | Likes | Comments | Shares | Saves | Engagement | IG skip rate | Counts? |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| #7 overview (voice) | TikTok | Nov 4 | 52,607 | ≈9% (4 s of 44) | 109 | 4 | 4 | – | 0.2% | – | yes |
-| #6 quiet-phone (voice) | TikTok | Nov 3 | 657 | ≈23% (7 s of 31) | 38 | 0 | 0 | – | 5.8% | – | yes |
-| #8 we-dont-just | TikTok | Nov 4 | 96 | ≈8% (1 s of 13) | 0 | 0 | 0 | – | 0% | – | no (<300) |
-| #3 likes-dont-book-jobs | TikTok | Nov 3 | 122 | ≈4% (1 s of 24) | 1 | 0 | 1 | – | 1.6% | – | no (<300) |
-| #4 one-home | TikTok | Nov 3 | 176 | ≈9% (2 s of 22) | 2 | 0 | 1 | – | 1.7% | – | no (<300) |
-| #2 pretty-website | TikTok | Oct 29 | 136 | ≈5% (1 s of 20) | 2 | 0 | 0 | – | 1.5% | – | no (<300) |
-| #1 missed-call | TikTok | Oct 29 | 130 | ≈15% (3 s of 20) | 1 | 0 | 0 | – | 0.8% | – | no (<300) |
-| #2 pretty-website | Instagram | Oct 29 | 40 | ≈16% (3.3 s of ~20) | 0 | 0 | 0 | 0 | 0% | 78.9% | no (<300) |
-| #1 missed-call | Instagram | Oct 29 | 136 | ≈46% (9.2 s of ~20) | 0 | 0 | 0 | 0 | 0% | 48.6% | no (<300) |
-| #3 likes-dont-book-jobs | Instagram | Nov 3 | 0 | – | 0 | 0 | 0 | 0 | – | – | no (<300) |
-| #4 one-home | Instagram | Nov 3 | 0 | ≈15% (3.2 s of 22) | 0 | 0 | 0 | 0 | – | – | no (<300) |
+| #7 overview (voice) | TikTok | Nov 4 | 52,616 | ≈10% (4.34 s of 44) | 110 | 4 | 4 | – | 0.2% | – | yes |
+| #6 quiet-phone (voice) | TikTok | Nov 3 | 659 | ≈25% (7.61 s of 31) | 38 | 0 | 0 | – | 5.8% | – | yes |
+| #8 we-dont-just | TikTok | Nov 4 | 97 | ≈8% (1.09 s of 13) | 0 | 0 | 0 | – | 0% | – | no (<300) |
+| #3 likes-dont-book-jobs | TikTok | Nov 3 | 124 | ≈6% (1.45 s of 24) | 1 | 0 | 1 | – | 1.6% | – | no (<300) |
+| #4 one-home | TikTok | Nov 3 | 177 | ≈11% (2.44 s of 22) | 2 | 0 | 1 | – | 1.7% | – | no (<300) |
+| #2 pretty-website | TikTok | Oct 29 | 137 | ≈8% (1.66 s of 20) | 2 | 0 | 0 | – | 1.5% | – | no (<300) |
+| #1 missed-call | TikTok | Oct 29 | 131 | ≈16% (3.22 s of 20) | 1 | 0 | 0 | – | 0.8% | – | no (<300) |
+| #2 pretty-website | Instagram | Oct 29 | 41 | ≈17% (3.46 s of ~20) | 0 | 0 | 0 | 0 | 0% | 76.9% | no (<300) |
+| #1 missed-call | Instagram | Oct 29 | 137 | ≈45% (8.96 s of ~20) | 0 | 0 | 0 | 0 | 0% | 48.1% | no (<300) |
+| #3 likes-dont-book-jobs | Instagram | Nov 3 | 3 | ≈17% (3.97 s of 24) | 0 | 0 | 0 | 0 | 0% | 100% | no (<300) |
+| #4 one-home | Instagram | Nov 3 | 14 | ≈13% (2.82 s of 22) | 0 | 0 | 0 | 0 | 0% | 100% | no (<300) |
+| #6 quiet-phone (voice) | Instagram | Nov 3 | 134 | ≈30% (9.24 s of 31) | 0 | 0 | 0 | 0 | 0% | 55.6% | no (<300) |
+| #7 overview (voice) | Instagram | Nov 4 | 152 | ≈16% (7.01 s of 44) | 2 | 0 | 0 | 1 | 2.0% | 44.3% | no (<300) |
+| #8 we-dont-just | Instagram | Nov 4 | 20 | ≈22% (2.89 s of 13) | 0 | 0 | 0 | 1 | 5.0% | 68.8% | no (<300) |
 | #8 we-dont-just | Facebook | Nov 4 | 3 | ≈15% (2 s of 13) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #7 overview (voice) | Facebook | Nov 4 | 7 | ≈7% (3 s of 44) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #6 quiet-phone (voice) | Facebook | Nov 3 | 15 | ≈6% (2 s of 31) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #3 likes-dont-book-jobs | Facebook | Nov 3 | 72 | ≈4% (1 s of 24) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #4 one-home | Facebook | Nov 3 | 9 | ≈14% (3 s of 22) | 0 | 0 | – | – | 0% | – | no (<300) |
-| #9 the-swing | Facebook | Nov 10 | 5 | 0% (0 s of 21) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #9 the-swing | TikTok | Nov 10 | 41 | ≈10% (2.11 s of 21) | 0 | 0 | 0 | – | 0% | – | no (<300) |
+| #9 the-swing | Instagram | Nov 10 | 7 | ≈12% (2.43 s of 21) | 0 | 0 | 0 | 0 | 0% | 33.3% | no (<300) |
+| #9 the-swing | YouTube | Nov 10 | 4 | – | 0 | 0 | – | – | 0% | – | no (<300) |
+| #9 the-swing | Facebook | Nov 10 | 6 | 0% (0 s of 21) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #10 level-1 | TikTok | Nov 11 | 83 | ≈6% (1.71 s of 27) | 0 | 0 | 0 | – | 0% | – | no (<300) |
-| #10 level-1 | Instagram | Nov 11 | 122 | ≈22% (5.97 s of 27) | 0 | 0 | 0 | 0 | 0% | 63.9% | no (<300) |
+| #10 level-1 | Instagram | Nov 11 | 122 | ≈22% (5.90 s of 27) | 0 | 0 | 0 | 0 | 0% | 63.9% | no (<300) |
 | #10 level-1 | YouTube | Nov 11 | 676 | – (no watch time from Buffer or Metricool) | 8 | 1 | – | – | 1.3% | – | yes (views, likes, comments only) |
+| #10 level-1 | Facebook | Nov 11 | 7 | ≈15% (4 s of 27) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #14 three-second-test | TikTok | Nov 11 eve | 91 | ≈6% (1.42 s of 22) | 1 | 0 | 0 | – | 1.1% | – | no (<300) |
-| #14 three-second-test | Instagram | Nov 11 eve | 16 | ≈20% (4.49 s of 22) | 0 | 0 | 0 | 0 | 0% | 84.6% | no (<300) |
+| #14 three-second-test | Instagram | Nov 11 eve | 16 | ≈18% (4.05 s of 22) | 0 | 0 | 0 | 0 | 0% | 84.6% | no (<300) |
 | #14 three-second-test | YouTube | Nov 11 eve | 5 | – | 0 | 0 | – | – | 0% | – | no (<300) |
+| #14 three-second-test | Facebook | Nov 11 eve | 20 | ≈5% (1 s of 22) | 0 | 0 | – | – | 0% | – | no (<300) |
 | #15 worst-time | TikTok | Nov 12 | 127 | ≈18% (3.95 s of 22.2) | 2 | 0 | 0 | – | 1.6% | – | no (<300) |
 | #15 worst-time | Instagram | Nov 12 | 134 | ≈36% (7.91 s of 22.2) | 3 | 0 | 0 | 0 | 2.2% | 30.6% | no (<300) |
 | #15 worst-time | YouTube | Nov 12 | 1,338 | – (no watch time from Buffer or Metricool) | 16 | 0 | – | – | 1.2% | – | yes (views, likes, comments only) |
+| #15 worst-time | Facebook | Nov 12 | 11 | ≈9% (2 s of 22.2) | 0 | 0 | – | – | 0% | – | no (<300) |
+| #16 find-the-painter | TikTok | Nov 13 | 85 | ≈18% (4.24 s of 23.5) | 1 | 0 | 0 | – | 1.2% | – | no (<300) |
+| #16 find-the-painter | Instagram | Nov 13 | 1,321 | **≈47% (10.96 s of 23.5)** | 15 | 0 | 1 | 2 | 1.4% | 47.3% (Metricool, at 492 views) | **yes** (first counted watch rate for a no-voice video; 48 h old on Nov 15; latest Buffer numbers are from ~33 h) |
+| #16 find-the-painter | YouTube | Nov 13 | 190 | – | 1 | 0 | – | – | 0.5% | – | no (<300) |
+| #16 find-the-painter | Facebook | Nov 13 | 26 | ≈9% (2 s of 23.5) | 0 | 0 | – | – | 0% | – | no (<300) |
 
 Baseline pulled Nov 10 from Metricool (TikTok average watch time comes in whole seconds, so short-video rates are rough). #9 was too new to count.
 
@@ -66,6 +78,8 @@ Too early to count (under 48 h), for the record: **#15 worst-time** (Nov 12, 10 
 
 Nov 15 pull (nightly run, 1:30 AM MT; Buffer numbers, Instagram skip rate from Metricool). **#15 worst-time passed 48 h:** YouTube 1,338 views and 16 likes (the second nightly video past 300 views, and the most-viewed nightly video so far), Instagram 134 views at ≈36% watch rate with a 30.6% skip rate (the lowest skip rate yet), TikTok 127 views at ≈18%. Only YouTube passed 300, and YouTube gives no watch time, so still no counted watch rate for a nightly video. #10's YouTube row is updated (676 views, 8 likes). Too early to count, for the record: **#16 find-the-painter** (Nov 13, 10 AM, ~39 h): Instagram 1,321 views, 10.96 s (≈47% of 23.5 s), 15 likes, 1 share, 2 saves (already past 300; at 48 h it becomes the first counted watch rate for a no-voice nightly video unless it drops); TikTok 85 views, 4.24 s (≈18%); YouTube 190 views, 1 like. **#17 dead-number** (Nov 14, 10 AM, ~16 h): TikTok 129 views, 1.40 s (≈6% of 23.5 s); Instagram 38 views, 4.85 s (≈21%); YouTube 37 views. brag-launch (hand-made, Nov 14, 6 PM, ~8 h): 2–5 views per app.
 **Buffer numbers check (Nov 15, second night): same fields as Nov 14.** TikTok and Instagram give average and total watch time; YouTube gives only views, likes, comments and engagement rate, no watch time, and Metricool returns no YouTube numbers either. Instagram skip rate is only in Metricool. **Settled: watch time from Buffer is yes for TikTok and Instagram, no for YouTube (neither tool has it).** Kai can decide on removing Metricool; the only thing lost would be Instagram skip rate.
+
+Nov 15 Sunday scorecard pull (11:45 AM MT; Buffer numbers last refreshed by Buffer around Nov 14, 7 PM MT, so they match the nightly pull; Metricool is staler, e.g. #16 Instagram at 492 views vs. Buffer's 1,321). Table refreshed from Buffer for every post at least 48 h old, Instagram skip rate from Metricool, Facebook from Metricool. Older rows moved slightly (e.g. #7 TikTok 52,616 views, 4.34 s; #1 TikTok 3.22 s) and Instagram rows for #3, #4, #6, #7, #8 and #9 were added. **#16 find-the-painter on Instagram is now 48 h old with 1,321 views: the first counted watch rate for a no-voice video, ≈47%.** Too early to count: #17 dead-number (TikTok 129 views, 1.40 s ≈6%; Instagram 38 views, 4.85 s ≈21%; YouTube 37), brag-launch (2–5 views per app), #18 three-roofers (posted today, 0 views so far). All 24 Buffer posts from Nov 10–15 show status "sent", none failed; 0 posts scheduled per channel. Scorecard: `scorecards/2026-11-15.md`.
 
 ## Tests
 - **Test 1 · AI voice vs. no voice** · started Nov 11 · alternate nights (even count of nightly videos = VOICE, odd = TEXT), both with a direct-question hook · ends when each arm has 3 counted videos · result: –
