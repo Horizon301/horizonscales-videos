@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>One Tap — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Archivo"; src: url(fonts/Archivo-500.woff2) format("woff2"); font-weight: 500; }
+  @font-face { font-family: "Archivo"; src: url(fonts/Archivo-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Instrument Serif"; src: url(fonts/InstrumentSerif-400i.woff2) format("woff2"); font-style: italic; }
+  @font-face { font-family: "Instrument Serif"; src: url(fonts/InstrumentSerif-400.woff2) format("woff2"); font-style: normal; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #EEE7DA; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, HITS, TYPE } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, rng, lerp, clamp, TAU } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+// Swiss / Bauhaus poster look: warm paper, a thin black grid, big flat circles and bars in coral, ink blue and sun
+// yellow that slide and turn on every beat, flush-left grotesk type (Archivo) with an italic serif accent (Instrument Serif)
+const PAPER = '#EEE7DA', INK = '#161616', BLUE = '#23387A', GREY = '#CFC9BD', WHITE = '#FBF8F2';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+
+// frame safety (Kai, Nov 5): title block at the top (y 170–410, x 140–940); the phone x 230–850, y 450–1240; the countdown
+// disc at (842, 480); captions centred at x 500 around y 1340 (≤ 640 wide); nothing that matters right of x 864 below
+// y 920 or under y 1630. Big geometric shapes may cross the edges (background only).
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+
+// paper grain (seeded, identical every frame)
+const GRAIN = document.createElement('canvas'); GRAIN.width = 540; GRAIN.height = 960;
+{ const g = GRAIN.getContext('2d'), r = rng(11);
+  for (let i = 0; i < 9000; i++) { g.fillStyle = `rgba(${r() < 0.5 ? '0,0,0' : '255,255,255'},${0.04 + r() * 0.06})`; g.fillRect(r() * 540, r() * 960, 1, 1); } }
+
+// which beat we're on → the poster shapes move to a new arrangement on every hit
+function beatK(t) { let n = 0, k = 1; for (const h of HITS) if (t >= h) { n++; k = E.outBack(seg(t, h, h + 0.35)); } return [n, k]; }
+const POSES = [
+  [[860, 300, 300], [140, 1500, 260, 0], [700, 1700]],
+  [[880, 360, 330], [120, 1460, 300, 0.4], [640, 1720]],
+  [[820, 320, 290], [180, 1520, 240, 0.9], [760, 1690]],
+  [[900, 280, 320], [100, 1480, 320, 1.4], [600, 1740]],
+];
+function poster(t) {
+  ctx.fillStyle = PAPER; ctx.fillRect(0, 0, 1080, 1920);
+  const [n, k] = beatK(t), P0 = POSES[(n + 3) % 4], P1 = POSES[n % 4];
+  const L2 = (i, j) => lerp(P0[i][j], P1[i][j], k);
+  // grid
+  ctx.strokeStyle = 'rgba(22,22,22,.09)'; ctx.lineWidth = 2;
+  for (let x = 90; x < 1080; x += 90) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, 1920); ctx.stroke(); }
+  for (let y = 60; y < 1920; y += 90) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(1080, y); ctx.stroke(); }
+  // sun-yellow disc behind the top right
+  circ(L2(0, 0), L2(0, 1), L2(0, 2)); ctx.fillStyle = C.sun; ctx.fill();
+  // ink-blue half disc bottom left, turning
+  ctx.save(); ctx.translate(L2(1, 0), L2(1, 1)); ctx.rotate(L2(1, 3) + t * 0.08);
+  ctx.beginPath(); ctx.arc(0, 0, L2(1, 2), 0, Math.PI); ctx.closePath(); ctx.fillStyle = BLUE; ctx.fill(); ctx.restore();
+  // coral bar along the bottom edge
+  ctx.save(); ctx.translate(L2(2, 0), L2(2, 1)); ctx.rotate(-0.18); ctx.fillStyle = C.coral; ctx.fillRect(-420, -40, 840, 80); ctx.restore();
+  // a thin black circle line that slowly turns (motion in the danger zone)
+  ctx.strokeStyle = INK; ctx.lineWidth = 3; circ(120 + 20 * Math.sin(t * 0.7), 560, 70); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, 1600); ctx.lineTo(1080, 1520); ctx.stroke();
+}
+
+// ── listing thumbnails
+function thumbA(x, y, s) {                         // no photo: grey placeholder icon
+  ctx.fillStyle = GREY; ctx.fillRect(x, y, s, s);
+  ctx.fillStyle = '#A9A397';
+  ctx.beginPath(); ctx.moveTo(x + s * 0.12, y + s * 0.8); ctx.lineTo(x + s * 0.42, y + s * 0.42); ctx.lineTo(x + s * 0.62, y + s * 0.66); ctx.lineTo(x + s * 0.72, y + s * 0.54); ctx.lineTo(x + s * 0.9, y + s * 0.8); ctx.closePath(); ctx.fill();
+  circ(x + s * 0.72, y + s * 0.28, s * 0.09); ctx.fill();
+}
+function thumbB(x, y, s) {                         // just a logo: a made-up mark, a trowel in a circle
+  ctx.fillStyle = BLUE; ctx.fillRect(x, y, s, s);
+  circ(x + s / 2, y + s / 2, s * 0.32); ctx.fillStyle = WHITE; ctx.fill();
+  ctx.fillStyle = BLUE;                             // three stacked pavers, a made-up mark
+  for (let i = 0; i < 3; i++) { const w = s * (0.38 - i * 0.07); rr(x + s / 2 - w / 2, y + s * (0.6 - i * 0.13), w, s * 0.1, s * 0.03); ctx.fill(); }
+  ctx.fillStyle = C.coral; rr(x + s * 0.44, y + s * 0.21, s * 0.12, s * 0.08, s * 0.03); ctx.fill();
+}
+function thumbC(x, y, s) {                         // a patio he built: pavers in perspective, a fire pit, a planter
+  ctx.save(); ctx.beginPath(); ctx.rect(x, y, s, s); ctx.clip();
+  ctx.fillStyle = '#BFD9E6'; ctx.fillRect(x, y, s, s * 0.42);                       // sky
+  ctx.fillStyle = '#E9D9BC'; ctx.fillRect(x, y + s * 0.12, s * 0.46, s * 0.34);      // house wall
+  ctx.fillStyle = BLUE; ctx.fillRect(x + s * 0.12, y + s * 0.2, s * 0.16, s * 0.26); // door
+  ctx.fillStyle = '#7FA06A'; ctx.fillRect(x, y + s * 0.4, s, s * 0.08);             // lawn edge
+  ctx.fillStyle = '#D9B98C'; ctx.fillRect(x, y + s * 0.46, s, s * 0.54);            // patio
+  ctx.strokeStyle = '#B48E62'; ctx.lineWidth = Math.max(1, s * 0.012);
+  for (let i = 0; i < 6; i++) { const yy = y + s * (0.46 + 0.54 * (i / 5) ** 1.4); ctx.beginPath(); ctx.moveTo(x, yy); ctx.lineTo(x + s, yy); ctx.stroke(); }
+  for (let i = -4; i <= 8; i++) { ctx.beginPath(); ctx.moveTo(x + s * (0.5 + i * 0.06), y + s * 0.46); ctx.lineTo(x + s * (0.5 + i * 0.2), y + s); ctx.stroke(); }
+  ctx.beginPath(); ctx.ellipse(x + s * 0.62, y + s * 0.72, s * 0.17, s * 0.07, 0, 0, TAU); ctx.fillStyle = '#6E6A63'; ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x + s * 0.62, y + s * 0.7, s * 0.11, s * 0.04, 0, 0, TAU); ctx.fillStyle = C.coral; ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x + s * 0.58, y + s * 0.69); ctx.lineTo(x + s * 0.62, y + s * 0.6); ctx.lineTo(x + s * 0.66, y + s * 0.69); ctx.fillStyle = C.sun; ctx.fill();
+  ctx.fillStyle = '#8C5A3C'; ctx.fillRect(x + s * 0.08, y + s * 0.56, s * 0.18, s * 0.14);
+  circ(x + s * 0.17, y + s * 0.53, s * 0.09); ctx.fillStyle = '#5E8C4E'; ctx.fill();
+  ctx.restore();
+}
+function thumbQ(x, y, s, t) {                      // your listing: a question mark
+  ctx.fillStyle = C.sun; ctx.fillRect(x, y, s, s);
+  const p = 1 + 0.06 * Math.sin(t * 6);
+  ctx.save(); ctx.translate(x + s / 2, y + s / 2 + s * 0.04); ctx.scale(p, p);
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = `italic ${Math.round(s * 0.8)}px "Instrument Serif"`; ctx.fillStyle = INK; ctx.fillText('?', 0, 0);
+  ctx.restore();
+}
+
+// ── the phone with the search results
+const PX = 230, PY = 450, PW = 620, PH = 790;
+const ROWS = [['A', thumbA], ['B', thumbB], ['C', thumbC]];
+const rowY = i => PY + 140 + i * 210;
+function phone(t) {
+  // phone body: flat black slab with a coral offset shadow (poster style)
+  ctx.fillStyle = C.coral; rr(PX + 16, PY + 16, PW, PH, 46); ctx.fill();
+  ctx.fillStyle = INK; rr(PX, PY, PW, PH, 46); ctx.fill();
+  ctx.fillStyle = WHITE; rr(PX + 18, PY + 18, PW - 36, PH - 36, 32); ctx.fill();
+  ctx.save(); rr(PX + 18, PY + 18, PW - 36, PH - 36, 32); ctx.clip();
+  // search bar
+  const tip = t >= T.tip;
+  ctx.fillStyle = '#ECE6DA'; rr(PX + 44, PY + 44, PW - 88, 70, 35); ctx.fill();
+  ctx.strokeStyle = INK; ctx.lineWidth = 4; circ(PX + 86, PY + 76, 14); ctx.stroke(); ctx.beginPath(); ctx.moveTo(PX + 96, PY + 86); ctx.lineTo(PX + 106, PY + 96); ctx.stroke();
+  let q = 'patio builder near me';
+  if (tip) { const full = 'your business', n = Math.floor(clamp((t - TYPE[0]) / (TYPE[1] - TYPE[0]), 0, 1) * full.length); q = full.slice(0, n); }
+  ctx.font = '500 32px "Archivo"'; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillStyle = INK; ctx.fillText(q, PX + 128, PY + 80);
+  if (tip && t < TYPE[1] + 0.6 && Math.floor(t * 3) % 2 === 0) { const w = ctx.measureText(q).width; ctx.fillRect(PX + 132 + w, PY + 60, 3, 40); }
+  // results slide out to the left when the tip starts; your listing slides in
+  const out = E.inCubic(seg(t, T.tip - 0.05, T.tip + 0.3));
+  if (out < 1) ROWS.forEach(([n, th], i) => listing(t, i, n, th, -out * 700));
+  const inn = Math.min(1.05, sp(t - TYPE[1] - 0.05, { freq: 3, damp: 0.7 }));
+  if (inn > 0) yours(t, (1 - Math.min(1, inn)) * 700);
+  ctx.restore();
+}
+function listing(t, i, n, th, dx) {
+  const y = rowY(i), x = PX + 40 + dx, w = PW - 80, h = 186;
+  const chosen = i === 2 && t >= T.tap, dimmed = i < 2 && t >= T.tap && t < T.tip ? 0.55 * E.outCubic(seg(t, T.tap, T.tap + 0.4)) : 0;
+  const focus = t >= T.a && t < T.see ? [T.a, T.b, T.c].findIndex((k, j) => t >= k && t < [T.b, T.c, T.see][j]) : -1;
+  ctx.save(); ctx.globalAlpha = focus >= 0 ? (focus === i ? 1 : 0.4) : 1 - dimmed;
+  ctx.fillStyle = chosen && (focus < 0 || focus === 2) ? '#FFF1D6' : WHITE; ctx.fillRect(x, y, w, h);
+  const lit = (chosen && (focus < 0 || focus === 2)) || focus === i; ctx.strokeStyle = lit ? C.coral : 'rgba(22,22,22,.18)'; ctx.lineWidth = lit ? 6 : 2; ctx.strokeRect(x, y, w, h);
+  th(x + 16, y + 18, 150, t);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 34px "Archivo"'; ctx.fillStyle = INK; ctx.fillText('Hardscaper ' + n, x + 190, y + 62);
+  ctx.font = '500 25px "Archivo"'; ctx.fillStyle = '#5B574F'; ctx.fillText('Patios · Walls · Pavers', x + 190, y + 102);
+  ctx.fillStyle = '#2F7A55'; ctx.fillText('Open now', x + 190, y + 140);
+  // call pill
+  ctx.fillStyle = BLUE; rr(x + w - 128, y + 116, 108, 48, 24); ctx.fill();
+  ctx.font = '600 25px "Archivo"'; ctx.fillStyle = WHITE; ctx.textAlign = 'center'; ctx.fillText('Call', x + w - 74, y + 149);
+  // the big letter tag on the left edge of each row (poster numbering)
+  ctx.restore();
+}
+function yours(t, dx) {
+  const x = PX + 40 + dx, y = PY + 180, w = PW - 80, h = 300;
+  ctx.fillStyle = WHITE; ctx.fillRect(x, y, w, h); ctx.strokeStyle = INK; ctx.lineWidth = 4; ctx.strokeRect(x, y, w, h);
+  thumbQ(x + 20, y + 20, 260, t);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 36px "Archivo"'; ctx.fillStyle = INK; ctx.fillText('Your', x + 304, y + 80); ctx.fillText('business', x + 304, y + 124);
+  ctx.font = '500 25px "Archivo"'; ctx.fillStyle = '#5B574F'; ctx.fillText('Patios · Walls', x + 304, y + 176);
+  ctx.fillStyle = BLUE; rr(x + 304, y + 214, 120, 52, 26); ctx.fill();
+  ctx.font = '600 26px "Archivo"'; ctx.fillStyle = WHITE; ctx.textAlign = 'center'; ctx.fillText('Call', x + 364, y + 249);
+  // the photo slot gets a ring on the question
+  if (t >= T.ask) { const k = E.outBack(seg(t, T.ask, T.ask + 0.4)); ctx.strokeStyle = C.coral; ctx.lineWidth = 8; ctx.strokeRect(x + 20 - 12 * k, y + 20 - 12 * k, 260 + 24 * k, 260 + 24 * k); }
+}
+// letter tags outside the phone so the viewer can call them A, B, C (left of the phone, inside the safe zone)
+function tags(t) {
+  if (t >= T.tip) return;
+  ROWS.forEach(([n], i) => {
+    const y = rowY(i) + 93, k = Math.min(1, sp(t + 0.4 - i * 0.08, { freq: 3, damp: 0.7 }));
+    const on = (i === 2 && t >= T.tap) ? 1 : 0;
+    circ(186, y, 38 * k); ctx.fillStyle = on ? C.coral : INK; ctx.fill();
+    ctx.font = '600 40px "Archivo"'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = WHITE; ctx.fillText(n, 186, y + 2);
+  });
+}
+
+// ── her thumb (flat geometric hand from the bottom left), drifts A → B → C and taps
+function thumb(t) {
+  if (t < T.time - 0.4 || t > T.tapped + 0.9) return;
+  const pts = [[T.time - 0.4, 560, 1500], [T.time + 0.2, 640, rowY(0) + 120], [T.time + 0.7, 600, rowY(1) + 120], [T.tap - 0.2, 660, rowY(2) + 110], [T.tap, 660, rowY(2) + 100]];
+  let x = pts[0][1], y = pts[0][2];
+  for (let i = 1; i < pts.length; i++) { const f = E.inOutCubic(seg(t, pts[i - 1][0], pts[i][0])); if (f > 0) { x = lerp(pts[i - 1][1], pts[i][1], f); y = lerp(pts[i - 1][2], pts[i][2], f); } }
+  const leave = E.inCubic(seg(t, T.tapped + 0.3, T.tapped + 0.9)); x -= leave * 200; y += leave * 700;
+  const press = t >= T.tap - 0.08 && t < T.tap + 0.15 ? 1 : 0;
+  ctx.save(); ctx.translate(x, y); ctx.rotate(0.35); ctx.scale(1 - press * 0.05, 1 - press * 0.05);
+  ctx.fillStyle = '#E2A88A'; rr(-46, 0, 92, 520, 46); ctx.fill();                     // thumb
+  ctx.strokeStyle = INK; ctx.lineWidth = 4; rr(-46, 0, 92, 520, 46); ctx.stroke();
+  ctx.fillStyle = '#F2CDB8'; rr(-30, 14, 60, 74, 28); ctx.fill();                       // nail
+  ctx.restore();
+  // ripple at the tap
+  const r = seg(t, T.tap, T.tap + 0.5);
+  if (r > 0 && r < 1) { ctx.strokeStyle = `rgba(240,100,90,${1 - r})`; ctx.lineWidth = 8; circ(660, rowY(2) + 100, 20 + r * 90); ctx.stroke(); }
+}
+
+// ── countdown disc
+function countdown(t) {
+  if (t >= T.tap) return;
+  const n = t < T.c2 ? 3 : t < T.c1 ? 2 : t < T.time ? 1 : 0;
+  const t0 = [T.c3, T.c2, T.c1, T.time][3 - n];
+  const q = t0 === 0 ? 1 : Math.min(1.1, sp(t - t0, { freq: 3.4, damp: 0.6 }));
+  const gone = E.inCubic(seg(t, T.tap - 0.5, T.tap - 0.1));
+  ctx.save(); ctx.translate(842, 482); ctx.scale(q * (1 - gone), q * (1 - gone));
+  circ(0, 0, 84); ctx.fillStyle = n ? C.coral : INK; ctx.fill();
+  // the ring that empties over each second
+  const left = n ? 1 - clamp((t - t0) / 1.2, 0, 1) : 0;
+  ctx.strokeStyle = INK; ctx.lineWidth = 8; ctx.beginPath(); ctx.arc(0, 0, 96, -Math.PI / 2, -Math.PI / 2 + TAU * left); ctx.stroke();
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillStyle = n ? INK : WHITE;
+  if (n) { ctx.font = '600 104px "Archivo"'; ctx.fillText(String(n), 0, 6); } else { ctx.font = 'italic 54px "Instrument Serif"'; ctx.fillText('time', 0, 2); }
+  ctx.restore();
+}
+
+// ── camera: [focus x, focus y, zoom] zooms on A, B and C in turn
+function cam(t) {
+  let fx = 540, fy = 845, z = 1;
+  const keys = [[T.a, rowY(0) + 93], [T.b, rowY(1) + 93], [T.c, rowY(2) + 93]];
+  const inK = E.inOutCubic(seg(t, T.a - 0.1, T.a + 0.35)) * (1 - E.inOutCubic(seg(t, T.see - 0.1, T.see + 0.4)));
+  let ty = keys[0][1];
+  for (let i = 1; i < 3; i++) ty = lerp(ty, keys[i][1], E.inOutCubic(seg(t, keys[i][0] - 0.1, keys[i][0] + 0.3)));
+  z = lerp(1, 1.05, inK);
+  let punch = 0; for (const k of HITS) if (t >= k) punch += 0.025 * Math.exp(-(t - k) * 8);
+  return [fx + 4 * Math.sin(t * 0.7), fy + 3 * Math.sin(t * 0.9), z * (1 + punch)];
+}
+
+// ── overlays
+function title() {
+  ctx.fillStyle = INK; ctx.fillRect(150, 182, 790, 230);
+  ctx.fillStyle = WHITE; ctx.fillRect(140, 172, 790, 230);
+  ctx.strokeStyle = INK; ctx.lineWidth = 3; ctx.strokeRect(140, 172, 790, 230);
+  ctx.fillStyle = C.coral; ctx.fillRect(140, 172, 14, 230);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '600 30px "Archivo"'; ctx.letterSpacing = '7px'; ctx.fillStyle = C.coral; ctx.fillText('HARDSCAPERS:', 190, 230); ctx.letterSpacing = '0px';
+  ctx.font = '500 50px "Archivo"'; ctx.fillStyle = INK; ctx.fillText('3 patio builders. She taps one.', 190, 300);
+  ctx.font = 'italic 74px "Instrument Serif"'; ctx.fillStyle = BLUE; ctx.fillText('Can you guess which?', 190, 378);
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = c.t0 === 0 ? 1 : Math.min(1.1, sp(t - c.t0, { freq: 3.2, damp: 0.66 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  let fsz = 50; ctx.font = `500 ${fsz}px "Archivo"`;
+  if (ctx.measureText(c.text).width > 600) { fsz = Math.floor(50 * 600 / ctx.measureText(c.text).width); ctx.font = `500 ${fsz}px "Archivo"`; }
+  const i = c.text.indexOf(c.hi), pre = c.text.slice(0, i), post = c.text.slice(i + c.hi.length);
+  const w0 = ctx.measureText(pre).width, w1 = ctx.measureText(c.hi).width, w2 = ctx.measureText(post).width, tw = w0 + w1 + w2, w = tw + 72, h = 96;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500 - (1 - Math.min(1, k)) * 40, 1340);
+  ctx.fillStyle = C.coral; ctx.fillRect(-w / 2 + 10, -h / 2 + 10, w, h);
+  ctx.fillStyle = INK; ctx.fillRect(-w / 2, -h / 2, w, h);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; let x = -tw / 2; const by = fsz * 0.36;
+  ctx.fillStyle = WHITE; ctx.fillText(pre, x, by); x += w0; ctx.fillStyle = C.sun; ctx.fillText(c.hi, x, by); x += w1; ctx.fillStyle = WHITE; ctx.fillText(post, x, by);
+  ctx.restore();
+}
+
+// ── end card: plum rises from the bottom like a poster panel, a sun-yellow bar on its top edge
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut)), top = 1920 - 1980 * k;
+  ctx.save(); ctx.beginPath(); ctx.rect(0, top, 1080, 2000); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  ctx.fillStyle = C.sun; ctx.fillRect(0, top, 1080, 12);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780), ga = seg(t, T.end, T.shut); glow.addColorStop(0, `rgba(240,100,90,${0.32 * ga})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  ctx.strokeStyle = 'rgba(255,210,122,.25)'; ctx.lineWidth = 3; circ(540, 860, 430 + 8 * Math.sin(t * 1.3)); ctx.stroke();
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.cream; ctx.fillText('You run the business.', 540, 880); });
+  rise(T.tag2, () => { ctx.font = '400 66px "Young Serif"'; ctx.fillStyle = C.coralLite; ctx.fillText('We help it scale.', 540, 968); });
+  rise(T.serv, () => { ctx.font = '600 32px "Poppins"'; ctx.fillStyle = C.coralLite; ctx.fillText('Websites · Ads · AI receptionists', 540, 1100); });
+  rise(T.url, () => { ctx.font = '800 44px "Nunito"'; ctx.fillStyle = C.cream; ctx.fillText('horizonscales.com', 540, 1174); });
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 0.6;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  if (t < T.shut) {
+    poster(t);
+    const [fx, fy, z] = cam(t);
+    ctx.save(); ctx.translate(540, 845); ctx.scale(z, z); ctx.translate(-fx, -fy);
+    phone(t); tags(t); thumb(t);
+    ctx.restore();
+    countdown(t);
+    ctx.save(); ctx.globalAlpha = 0.8; ctx.drawImage(GRAIN, 0, 0, 1080, 1920); ctx.restore();
+    title(); CAPS.forEach(cp => caption(cp, t));
+  } else { ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920); }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', '800 44px "Nunito"', '500 50px "Archivo"', '600 34px "Archivo"', 'italic 74px "Instrument Serif"', '400 74px "Instrument Serif"', '600 32px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
