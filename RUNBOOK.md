@@ -143,6 +143,23 @@ A Remotion or Remocn video goes through the same gates as any other (1080×1920,
 - Keep the old rules: clear hits on card changes, nothing "overdramatic cinematic", −14 LUFS, true peak ≤ −1 dBTP.
 - Claude can't hear the result. Check it by measurement (`audio.mjs check`), keep arrangements simple (three or four parts), and say in the morning message which band was used so Kai can say what he likes.
 
+## 3c. Real sound effects with real-sfx (Kai, Nov 17, 2026: "mainly in the nightly videos")
+
+The skill is in `kit/skills/real-sfx/` (read its `SKILL.md` before using it). Its sounds come from `kit/sfx-library/` (CC0 only).
+
+**Only if `kit/sfx-library/` holds audio files** (`find kit/sfx-library -name "*.wav" -o -name "*.mp3" | head -1` prints something). If it's empty, skip this section and keep section 3b as it is.
+
+1. **Don't bake sound effects into the render.** `score.mjs` makes the music (and voice) only. No synth whoosh/pop/click layer: real-sfx adds the effects afterwards. (Its one failing self-test is taking baked-in synth effects back out, so never put them in.)
+2. **Write the event list as you build:** `work/<slug>/docs/cues.json` with the time and kind of every moment that should make a sound (format: `kit/skills/real-sfx/references/typed-cues.md`). Same 3b rules: real-world sounds only where the picture shows them, hits on card changes, at most three kinds of effect per video, not the same set two nights running.
+3. After `sh build.sh` passes, from `kit/skills/real-sfx/`:
+   - `python3 -I scripts/setup.py init --library main=<repo>/kit/sfx-library --uisfx --index --force` (once per run)
+   - `python3 -I scripts/from_cues.py <work folder> --video <work folder>/out/<video>.mp4 --out <work folder>/sfx/cues.json --ui library`
+   - `python3 -I scripts/mix.py <work folder>/sfx/cues.json --out <work folder>/out/<slug>_sfx.mp4 --duck --target-lufs -14` (add `--voice-safe` on VOICE nights)
+   - the self-critique loop in its `SKILL.md` step 6 (`verify.py`, `critique.py`), up to two fix rounds.
+4. **Use the `_sfx.mp4` only if** it still passes our audio gates (−14 ± 1.5 LUFS, true peak ≤ −1 dBTP: measure with `ffmpeg -i <file> -af ebur128=peak=true -f null -`) and the critique has no fail on sync, doubling or mono. Otherwise post the plain build and say why in the morning message. A failed real-sfx pass never blocks the video.
+5. Write all real-sfx working files inside the work folder. Before committing, run `git checkout -- kit/skills/real-sfx` so the skill folder stays unchanged.
+6. Morning message: one line, "Sound effects: real-sfx, <n> sounds (<kinds>), critique <score>" or "Sound effects: skipped (<reason>)". Name the five moments the critique says to listen to.
+
 ## 3. Style rules (from Kai's feedback)
 
 - **Variety:** every video gets a new look: a new visual idea, format, typeface pairing and music genre. Read `log.md` first and don't repeat a concept or style that's already there. Only the logo and the plum end card repeat.

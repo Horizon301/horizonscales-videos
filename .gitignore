@@ -2,3 +2,5 @@ node_modules/
 work/*/audio/
 work/*/out/
 work/*/qa/
+kit/skills/real-sfx/library_index.json
+kit/skills/real-sfx/taste.json
