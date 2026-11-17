@@ -4,8 +4,6 @@ This repo holds everything the nightly run needs. Each night (about 1:30 AM Moun
 
 Read this whole file before starting. The rules here are Kai's, not suggestions.
 
-**NEXT RUN ONLY (#20, Nov 17, 2026; Kai, Nov 16: "I want the next one to be a game or question/test hook"):** make tonight's video a **game the viewer plays (type 1)** with a **question/test hook** that dares them to play ("Can you spot…?", "Which one…?", "How fast can you…?"). It must be a new kind of game, not a repeat of #13/#14 (compare two), #16 (seek-and-find with a countdown) or #19 (pick one of three listings). Ideas, pick one or invent your own: spot the difference between two versions of the same thing, a true/false round, a memory test (show it for 3 seconds, then ask), a "tap when you see it" reaction game, or guess what happens next. The answer reveal is the payoff; keep one idea, no lesson list. All other rules still apply (subject is something Horizon Scales does, no made-up stats, frame safety, score the hook in 2e). After this run, delete this paragraph and say in the morning message that you did.
-
 **Order of a run:** 0. read last results → pick tonight's test arm → 1–4 rules (2b: one idea per video; 2c: the hook, caption and social skills; 2d: the animation skills; 2e: score the hook + the outside skills; 3b: sound) → 5. make → 6. save and schedule → 7. record and report.
 
 ---
