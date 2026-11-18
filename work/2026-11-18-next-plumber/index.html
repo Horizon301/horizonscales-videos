@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>The Next Plumber — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Poppins"; src: url(fonts/Poppins-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #F6F0E6; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, HITS } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, lerp, TAU } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+// Plain on purpose (Kai, Nov 18: the gimmicks hid the point). One phone on a flat cream background, big words,
+// one thing on screen at a time. A small tag above the phone says whose phone it is.
+const INK = '#1C0228', WHITE = '#FFFFFF', RED = '#E5484D', GREEN = '#2FA36B', DARK = '#17131F', GREY = '#8B8496';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+
+// frame safety (Kai, Nov 5): hook block y 172–412 (x 140–940); phone x 280–760, y 520–1230 with its tag at y 470;
+// captions centred at x 500 around y 1340 (≤ 640 wide); nothing right of x 864 below y 920 or under y 1630.
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+const text = (s, x, y, font, col, align = 'center') => { ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); };
+
+function background(t) {
+  ctx.fillStyle = C.cream; ctx.fillRect(0, 0, 1080, 1920);
+  // one soft coral disc behind the phone, breathing slowly (background only)
+  const r = 430 + 14 * Math.sin(t * 1.2); circ(520, 880, r); ctx.fillStyle = 'rgba(245,163,154,.38)'; ctx.fill();
+  circ(520, 880, r - 90); ctx.fillStyle = 'rgba(255,210,122,.30)'; ctx.fill();
+}
+
+// ── the phone (screen 440 × 670 at PX, PY)
+const PX = 300, PY = 540, PW = 440, PH = 670;
+function handset(x, y, s, col, rot = 0) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s); ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(-26, -30); ctx.quadraticCurveTo(-34, -22, -30, -8); ctx.quadraticCurveTo(-14, 22, 10, 32); ctx.quadraticCurveTo(24, 36, 30, 26);
+  ctx.lineTo(20, 12); ctx.quadraticCurveTo(12, 8, 6, 14); ctx.quadraticCurveTo(-8, 4, -14, -10); ctx.quadraticCurveTo(-8, -16, -12, -24); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function callScreen(t, t0, name, sub, subCol, opts = {}) {
+  const cx = PX + PW / 2, cy = PY + 252;
+  ctx.fillStyle = opts.bg || DARK; ctx.fillRect(PX, PY, PW, PH);
+  if (opts.rings) for (let i = 0; i < 3; i++) { const p = ((t - t0) * 0.8 + i / 3) % 1; circ(cx, cy, 78 + p * 120); ctx.strokeStyle = `rgba(255,255,255,${0.3 * (1 - p)})`; ctx.lineWidth = 4; ctx.stroke(); }
+  circ(cx, cy, 76); ctx.fillStyle = opts.avatar || GREY; ctx.fill();
+  handset(cx, cy, 1.15, WHITE);
+  text(name, cx, cy + 140, '700 46px "Poppins"', WHITE);
+  text(sub, cx, cy + 190, '600 36px "Poppins"', subCol);
+  // end / hang-up button
+  const press = opts.press ? 1 - 0.12 * Math.exp(-(t - opts.press) * 9) * (t >= opts.press ? 1 : 0) : 1;
+  circ(cx, PY + PH - 96, 54 * press); ctx.fillStyle = opts.btn || RED; ctx.fill(); handset(cx, PY + PH - 96, 0.85 * press, WHITE, opts.btn ? 0 : 2.35);
+}
+function quote(t, t0, lines, y) {
+  // what she hears, in a white bubble on the screen
+  const k = Math.min(1.05, sp(t - t0, { freq: 3, damp: 0.7 })); if (k <= 0.01) return;
+  const w = 380, h = 44 + lines.length * 46, cx = PX + PW / 2;
+  ctx.save(); ctx.translate(cx, y + h / 2); ctx.scale(k, k); ctx.translate(-cx, -(y + h / 2));
+  rr(cx - w / 2, y, w, h, 22); ctx.fillStyle = WHITE; ctx.fill();
+  lines.forEach((l, i) => text(l, cx, y + 58 + i * 46, '600 32px "Poppins"', INK));
+  ctx.restore();
+}
+function dots(t) { return '.'.repeat(1 + (Math.floor(t * 3) % 3)); }
+function screen(t) {
+  ctx.save(); rr(PX, PY, PW, PH, 34); ctx.clip();
+  if (t < T.vm) callScreen(t, 0, 'You', 'Calling' + dots(t), 'rgba(255,255,255,.8)', { rings: true, avatar: C.coral });
+  else if (t < T.hang) { callScreen(t, T.vm, 'You', 'No answer', C.sun, { avatar: C.coral }); quote(t, T.vm + 0.35, ['“Leave a message', 'after the beep…”'], PY + 22); }
+  else if (t < T.next) { callScreen(t, T.hang, 'You', 'Call ended', C.coralLite, { avatar: '#5A5364', press: T.hang }); quote(t, T.hang + 0.5, ['No message left'], PY + 36); }
+  else if (t < T.pick) callScreen(t, T.next, 'Next plumber', 'Calling' + dots(t), 'rgba(255,255,255,.8)', { rings: true, avatar: '#4C7BD9' });
+  else if (t < T.job) { callScreen(t, T.pick, 'Next plumber', 'Connected', '#8FE3B8', { avatar: GREEN, bg: '#10261C' }); quote(t, T.pick + 0.3, ['“Hello, plumbing!”'], PY + 36); }
+  else if (t < T.you) {
+    // booked: a big green check
+    ctx.fillStyle = '#10261C'; ctx.fillRect(PX, PY, PW, PH);
+    const cx = PX + PW / 2, cy = PY + 260, k = Math.min(1.1, sp(t - T.job, { freq: 3, damp: 0.55 }));
+    ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); circ(0, 0, 110); ctx.fillStyle = GREEN; ctx.fill();
+    const d = E.outCubic(seg(t, T.job + 0.15, T.job + 0.5)); ctx.strokeStyle = WHITE; ctx.lineWidth = 20; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(-50, 4); ctx.lineTo(lerp(-50, -14, Math.min(1, d * 2)), lerp(4, 40, Math.min(1, d * 2))); if (d > 0.5) ctx.lineTo(lerp(-14, 54, d * 2 - 1), lerp(40, -40, d * 2 - 1)); ctx.stroke(); ctx.restore();
+    text('Job booked', cx, cy + 200, '700 50px "Poppins"', WHITE);
+    text('with the next plumber', cx, cy + 254, '600 32px "Poppins"', '#8FE3B8');
+  } else {
+    // your phone: lock screen with one missed call and no voicemail
+    const g = ctx.createLinearGradient(0, PY, 0, PY + PH); g.addColorStop(0, '#2A2140'); g.addColorStop(1, '#15101F'); ctx.fillStyle = g; ctx.fillRect(PX, PY, PW, PH);
+    const cx = PX + PW / 2;
+    text('2:14', cx, PY + 170, '600 110px "Poppins"', WHITE);
+    const note = (i, t0, title, sub, col) => { const k = Math.min(1.04, sp(t - t0, { freq: 3, damp: 0.7 })); if (k <= 0.01) return; const y = PY + 240 + i * 150;
+      ctx.save(); ctx.translate(cx, y + 62); ctx.scale(k, k); ctx.translate(-cx, -(y + 62));
+      rr(PX + 26, y, PW - 52, 124, 24); ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.fill();
+      circ(PX + 82, y + 62, 32); ctx.fillStyle = col; ctx.fill(); handset(PX + 82, y + 62, 0.55, WHITE, i ? 0 : 2.35);
+      text(title, PX + 132, y + 56, '700 34px "Poppins"', INK, 'left'); text(sub, PX + 132, y + 98, '600 28px "Poppins"', '#6B6476', 'left'); ctx.restore(); };
+    note(0, T.you + 0.3, 'Missed call', '1 · just now', RED);
+    note(1, T.you + 1.1, 'Voicemail', '0 new messages', GREY);
+  }
+  ctx.restore();
+}
+function phone(t) {
+  // her phone slides out and yours slides in at T.you
+  const sw = E.inOutCubic(seg(t, T.you - 0.25, T.you + 0.25)), dx = t < T.you ? -sw * 2 * 900 : (1 - sw) * 2 * 900 - 900 + 900 * 1;
+  const off = t < T.you ? -900 * E.inCubic(seg(t, T.you - 0.25, T.you)) : 900 * (1 - E.outCubic(seg(t, T.you, T.you + 0.3)));
+  ctx.save(); ctx.translate(off, 0);
+  const tag = t < T.you ? 'HER PHONE' : 'YOUR PHONE', tc = t < T.you ? INK : C.coral;
+  ctx.font = '700 30px "Poppins"'; ctx.letterSpacing = '6px'; const tw = ctx.measureText(tag).width + 56;
+  rr(520 - tw / 2, 448, tw, 56, 28); ctx.fillStyle = tc; ctx.fill(); text(tag, 520 + 3, 487, '700 30px "Poppins"', WHITE); ctx.letterSpacing = '0px';
+  rr(PX - 20 + 12, PY - 20 + 16, PW + 40, PH + 40, 52); ctx.fillStyle = 'rgba(28,2,40,.22)'; ctx.fill();
+  rr(PX - 20, PY - 20, PW + 40, PH + 40, 52); ctx.fillStyle = '#0B0910'; ctx.fill();
+  screen(t);
+  ctx.restore();
+}
+
+function cam(t) { let punch = 0; for (const k of HITS) if (t >= k) punch += 0.022 * Math.exp(-(t - k) * 8); return 1 + punch + 0.004 * Math.sin(t * 0.9); }
+
+function title() {
+  const x = 140, y = 172, w = 800, h = 240;
+  rr(x + 8, y + 10, w, h, 24); ctx.fillStyle = 'rgba(28,2,40,.25)'; ctx.fill();
+  rr(x, y, w, h, 24); ctx.fillStyle = C.plum; ctx.fill();
+  ctx.letterSpacing = '7px'; text('PLUMBERS:', x + 48, y + 66, '700 32px "Poppins"', C.coral, 'left'); ctx.letterSpacing = '0px';
+  text('You missed her call.', x + 48, y + 136, '400 60px "Young Serif"', C.cream, 'left');
+  text('What does she do next?', x + 48, y + 206, '400 60px "Young Serif"', C.sun, 'left');
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = c.t0 === 0 ? 1 : Math.min(1.08, sp(t - c.t0, { freq: 3.2, damp: 0.7 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  let fsz = 54; ctx.font = `700 ${fsz}px "Poppins"`;
+  if (ctx.measureText(c.text).width > 580) { fsz = Math.floor(54 * 580 / ctx.measureText(c.text).width); ctx.font = `700 ${fsz}px "Poppins"`; }
+  const i = c.text.indexOf(c.hi), pre = c.text.slice(0, i), post = c.text.slice(i + c.hi.length);
+  const w0 = ctx.measureText(pre).width, w1 = ctx.measureText(c.hi).width, tw = w0 + w1 + ctx.measureText(post).width, w = tw + 60, h = 108;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1340); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  rr(-w / 2, -h / 2, w, h, 22); ctx.fillStyle = C.plum; ctx.fill();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; let x = -tw / 2; const by = fsz * 0.35;
+  ctx.fillStyle = WHITE; ctx.fillText(pre, x, by); x += w0; ctx.fillStyle = C.sun; ctx.fillText(c.hi, x, by); x += w1; ctx.fillStyle = WHITE; ctx.fillText(post, x, by);
+  ctx.restore();
+}
+
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut));
+  ctx.save(); circ(520, 880, 20 + 1700 * k); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780); glow.addColorStop(0, `rgba(240,100,90,${0.3 * k})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => text('You run the business.', 540, 880, '400 66px "Young Serif"', C.cream));
+  rise(T.tag2, () => text('We help it scale.', 540, 968, '400 66px "Young Serif"', C.coralLite));
+  rise(T.serv, () => text('Websites · Ads · AI receptionists', 540, 1100, '600 32px "Poppins"', C.coralLite));
+  rise(T.url, () => text('horizonscales.com', 540, 1174, '800 44px "Nunito"', C.cream));
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 0.6;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = C.cream; ctx.fillRect(0, 0, 1080, 1920);
+  if (t < T.shut) {
+    background(t);
+    const z = cam(t); ctx.save(); ctx.translate(520, 880); ctx.scale(z, z); ctx.translate(-520, -880); phone(t); ctx.restore();
+    title(); CAPS.forEach(cp => caption(cp, t));
+  }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', '800 44px "Nunito"', '700 32px "Poppins"', '600 32px "Poppins"']);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>

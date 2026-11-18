@@ -83,6 +83,17 @@ Kai, after seeing #12: "I want it to be more unique instead of being the exact s
 - **The buddy test, before building:** finish the sentence "a painter would tell his buddy this video is about ___". If the answer is "a marketing agency", "three leaks" or "why you need ads / a website / an AI receptionist", start over.
 - **Never ask Kai to approve a post.** He said it again on Nov 11: "you dont need my approvle to post, that's the whole point of this chat." Schedule it, and tell him how to stop it. That's all.
 
+## 2b-3. Plain and clear beats clever (Kai, Nov 18, 2026: "These videos are starting to make no sense")
+
+Kai pulled #21 "No Beep" (a voicemail greeting shown as a karaoke song) before it posted and had it remade plain as #22. He named three problems with the videos from #17 to #21: **the gimmick hides the point, the story is hard to follow, and the topics are too small.** These rules come before the variety rules in sections 2b-2, 2d and 3:
+- **No wrapper around the idea.** Don't dress the point up as something else (a karaoke song, a crayon puzzle, a poster, a game show). Show the real thing: the phone, the website, the search result, the person. A new look means new colours, type and music, never a new metaphor.
+- **The 3-second check, before building:** a trade owner who sees any single frame with the sound off must be able to say what is happening. If a frame needs the frame before it to make sense, simplify.
+- **One thing on screen at a time,** at most 8 captions in a video, each up for at least 2.4 s, plain words.
+- **Big topics only:** missed calls, not being found, a website that doesn't get the call, slow replies, no reviews. Not details like a footer year, a listing photo or the length of a greeting, unless the video is plainly about the big thing.
+- **Games (type 1) only when the game is the plain thing itself** (which of these two would you call?), not a puzzle with a twist.
+- A clear hook beats a high hook score. Keep scoring, but never pick a vaguer hook because it scores higher.
+- `work/2026-11-18-next-plumber/` is the reference for "plain".
+
 ## 2c. Skills to use when they help (Kai, Nov 11, 2026)
 
 Kai: "when doing this videos i want you to use these skills: /viral-hook-creator /social-post-writer", then `marketing-skills:social`, then (Nov 11 evening) "Use the skills as needed, please." So: they are tools, not a checklist. Load one with the Skill tool when it will make tonight's hook, caption or format better, and skip it when it won't. When you do load one (they may be listed as `anthropic-skills:viral-hook-creator` and `anthropic-skills:social-post-writer`) before writing, and follow them:
