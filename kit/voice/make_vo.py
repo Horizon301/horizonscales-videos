@@ -1,19 +1,19 @@
-"""Make AI voiceover lines with Kokoro (voice am_michael, the "Michael" voice Kai chose for #6).
+"""Make AI voiceover lines with Kokoro. Kai's voices (Nov 18, 2026, from the voice-samples video): am_adam, am_echo, am_liam, am_onyx at speed 1.15.
 
 Usage (from a video's work folder):
-    python3 ../../kit/voice/make_vo.py lines.json
+    python3 ../../kit/voice/make_vo.py lines.json <voice> 1.15
 lines.json is a list of strings, one per line of narration. Writes audio/vo_0.wav, audio/vo_1.wav, ...
 and audio/vo_lines.json ([{i, text, dur}]) so timeline.js can place each line and score.mjs can load it
 (see kit/examples/quiet-phone for how #6 placed and mixed its lines).
 
-First run installs kokoro-onnx and downloads the model (~115 MB) from GitHub into ~/.cache/kokoro.
+First run installs kokoro-onnx and downloads the full model (~325 MB, the same one the samples used) from GitHub into ~/.cache/kokoro.
 Write numbers and initials the way they should sound ("nine P.M.", "A.I.").
 """
 import json, os, subprocess, sys, urllib.request
 
 CACHE = os.path.expanduser('~/.cache/kokoro')
 BASE = 'https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/'
-FILES = ['kokoro-v1.0.int8.onnx', 'voices-v1.0.bin']
+FILES = ['kokoro-v1.0.onnx', 'voices-v1.0.bin']
 
 def setup():
     try:
@@ -26,7 +26,7 @@ def setup():
         if not os.path.exists(p) or os.path.getsize(p) < 1_000_000:
             print('downloading', f); urllib.request.urlretrieve(BASE + f, p)
 
-def main(path, voice='am_michael', speed=1.0):
+def main(path, voice='am_adam', speed=1.15):
     setup()
     import numpy as np, soundfile as sf
     from kokoro_onnx import Kokoro
