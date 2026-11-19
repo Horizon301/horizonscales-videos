@@ -61,8 +61,7 @@ Never a small detail as the whole video (a footer year, a listing photo, the len
 - The AI receptionist is always called AI and never shown as a human.
 - No pitching or outreach: no "DM me", no "book a call", no tagging businesses. A caption may ask a question.
 - Original work only: no copyrighted songs, characters, logos, games or film scenes.
-- **Voice (Kai, Nov 18: "11 12 14 and 15 i like alot"):** Kokoro **Adam (`am_adam`), Echo (`am_echo`), Liam (`am_liam`), Onyx (`am_onyx`)** at speed 1.15. Rotate them: never the same voice two voiced videos running (check `log.md`). Make the lines with `python3 ../../kit/voice/make_vo.py lines.json <voice> 1.15` (example of placing and mixing lines: `kit/examples/quiet-phone`). Never Michael, Heart, Puck or Fenrir (Kai turned them down), never ElevenLabs or anyone else's account, never a real person's voice or a clone.
-- **Voice vs. no voice test (restarted Nov 18):** alternate nights. Count the nightly videos in `log.md` from #23 on: even count = **VOICE**, odd = **TEXT** (so #23 is VOICE). Voice nights: the voice says the hook in the first second and tells the story; on-screen captions still carry the key words (many watch muted); AI-content labels on (`isAiGenerated: true`). Text nights: no voice, labels off. Ends when each side has 3 counted videos; the side with the higher median watch rate becomes the default. Write the arm and voice in the log line.
+- **VOICE IS ON HOLD (Kai, Nov 18 evening).** Every video is text only (TEXT), AI-content labels off, until this line is replaced. Kai heard the Kokoro voices Adam, Echo, Liam and Onyx in a real test video and said they have "no emotion at all", "just a monotone". Don't use any Kokoro voice, ElevenLabs, anyone else's account, or a clone of a real voice. The voice vs. no voice test is paused; write TEXT in the log line.
 
 ## 5. Look and sound
 
