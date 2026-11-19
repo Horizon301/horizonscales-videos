@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>After Five — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Space Grotesk"; src: url(fonts/SpaceGrotesk-500.woff2) format("woff2"); font-weight: 500; }
+  @font-face { font-family: "Space Grotesk"; src: url(fonts/SpaceGrotesk-700.woff2) format("woff2"); font-weight: 700; }
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #0E1838; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, HITS } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, lerp, TAU } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+// Plain (RUNBOOK v2): one phone, the real screens, a sky behind it that goes from night to morning.
+const NAVY = '#14204A', WHITE = '#FFFFFF', RED = '#E5484D', GREEN = '#2FA36B', DARK = '#121521', GREY = '#8B8496';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const F = '"Space Grotesk"';
+// frame safety: hook block y 180–410 (x 140–940); phone x 280–760, y 520–1230, tag at y 450;
+// captions centred at x 500 around y 1340 (≤ 640 wide); nothing right of x 864 below y 920 or under y 1630.
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+const text = (s, x, y, font, col, align = 'center') => { ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); };
+const mix = (a, b, k) => a.map((v, i) => Math.round(lerp(v, b[i], k)));
+const rgb = a => `rgb(${a[0]},${a[1]},${a[2]})`;
+
+// day amount: 0 night, 1 morning (the night passes 5.6–7.0)
+const dayK = t => E.inOutCubic(seg(t, T.night, T.night + 1.4));
+const STARS = Array.from({ length: 46 }, (_, i) => [((i * 197) % 1000) * 1.08, 60 + ((i * 331) % 1000) * 1.5, 1.5 + (i % 3)]);
+function background(t) {
+  const d = dayK(t);
+  const top = mix([10, 16, 44], [120, 178, 228], d), bot = mix([30, 42, 92], [255, 214, 150], d);
+  const g = ctx.createLinearGradient(0, 0, 0, 1920); g.addColorStop(0, rgb(top)); g.addColorStop(1, rgb(bot)); ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 1920);
+  // stars and moon fade out, the sun rises
+  ctx.globalAlpha = 1 - d; STARS.forEach(([x, y, r], i) => { circ(x, y, r * (0.8 + 0.2 * Math.sin(t * 2 + i))); ctx.fillStyle = '#FFFFFF'; ctx.fill(); });
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, 1080, 1920); ctx.arc(848, 538 + d * 300, 60, 0, TAU); ctx.clip('evenodd'); circ(820, 560 + d * 300, 70); ctx.fillStyle = '#F4EFD8'; ctx.fill(); ctx.restore();
+  ctx.globalAlpha = 1;
+  if (d > 0) { const sy = lerp(1900, 760, d); circ(220, sy, 170); ctx.fillStyle = 'rgba(255,210,122,.55)'; ctx.fill(); circ(220, sy, 110); ctx.fillStyle = 'rgba(255,226,160,.9)'; ctx.fill(); }
+  // a window frame: thin cream muntins, slow drift
+  const dx = 6 * Math.sin(t * 0.5);
+  ctx.strokeStyle = 'rgba(246,240,230,.16)'; ctx.lineWidth = 14;
+  ctx.beginPath(); ctx.moveTo(540 + dx, 0); ctx.lineTo(540 + dx, 1920); ctx.moveTo(0, 1010); ctx.lineTo(1080, 1010); ctx.stroke();
+}
+
+// ── the phone (screen 440 × 670 at PX, PY)
+const PX = 300, PY = 540, PW = 440, PH = 670, CX = PX + PW / 2;
+function handset(x, y, s, col, rot = 0) { ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s); ctx.fillStyle = col; ctx.beginPath();
+  ctx.moveTo(-26, -30); ctx.quadraticCurveTo(-34, -22, -30, -8); ctx.quadraticCurveTo(-14, 22, 10, 32); ctx.quadraticCurveTo(24, 36, 30, 26);
+  ctx.lineTo(20, 12); ctx.quadraticCurveTo(12, 8, 6, 14); ctx.quadraticCurveTo(-8, 4, -14, -10); ctx.quadraticCurveTo(-8, -16, -12, -24); ctx.closePath(); ctx.fill(); ctx.restore(); }
+function pop(t, t0, fn, cx, cy) { const k = Math.min(1.05, sp(t - t0, { freq: 3, damp: 0.7 })); if (k <= 0.01) return; ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); fn(); ctx.restore(); }
+function bubble(t, t0, lines, y, col = WHITE, ink = NAVY) {
+  const w = 384, h = 40 + lines.length * 44;
+  pop(t, t0, () => { rr(CX - w / 2, y, w, h, 22); ctx.fillStyle = col; ctx.fill(); lines.forEach((l, i) => text(l, CX, y + 54 + i * 44, `500 31px ${F}`, ink)); }, CX, y + h / 2);
+}
+function dots(t) { return '.'.repeat(1 + (Math.floor(t * 3) % 3)); }
+function clockAt(t) {
+  if (t < T.night) return t < T.miss ? '8:47' : '8:48';
+  // rolls from 8:48 PM to 7:12 AM during the night
+  const k = E.inOutCubic(seg(t, T.night + 0.1, T.night + 1.4)), m0 = 20 * 60 + 48, m1 = 31 * 60 + 12, m = Math.round(lerp(m0, m1, k)) % (24 * 60);
+  const h = m / 60 | 0, mm = m % 60; return `${((h + 11) % 12) + 1}:${String(mm).padStart(2, '0')}`;
+}
+const ampm = t => { if (t < T.night) return 'PM'; const k = E.inOutCubic(seg(t, T.night + 0.1, T.night + 1.4)), m = Math.round(lerp(20 * 60 + 48, 31 * 60 + 12, k)) % 1440; return m < 720 ? 'AM' : 'PM'; };
+function note(t, t0, i, title, sub, col, icon) {
+  const y = PY + 250 + i * 150;
+  pop(t, t0, () => {
+    rr(PX + 24, y, PW - 48, 128, 24); ctx.fillStyle = 'rgba(255,255,255,.95)'; ctx.fill();
+    circ(PX + 80, y + 64, 32); ctx.fillStyle = col; ctx.fill();
+    if (icon === 'call') handset(PX + 80, y + 64, 0.55, WHITE, 2.35);
+    else { rr(PX + 62, y + 50, 36, 26, 8); ctx.fillStyle = WHITE; ctx.fill(); }
+    text(title, PX + 128, y + 52, `700 30px ${F}`, NAVY, 'left');
+    sub.forEach((s, j) => text(s, PX + 128, y + 90 + j * 30, `500 25px ${F}`, '#5E6478', 'left'));
+  }, CX, y + 64);
+}
+function lockScreen(t) {
+  const g = ctx.createLinearGradient(0, PY, 0, PY + PH); g.addColorStop(0, '#26304F'); g.addColorStop(1, '#141A2E'); ctx.fillStyle = g; ctx.fillRect(PX, PY, PW, PH);
+  text(clockAt(t), CX - 26, PY + 170, `700 104px ${F}`, WHITE);
+  text(ampm(t), CX + 150, PY + 170, `700 36px ${F}`, 'rgba(255,255,255,.75)', 'left');
+  text(ampm(t) === 'PM' ? 'Tuesday night' : 'Wednesday', CX, PY + 214, `500 28px ${F}`, 'rgba(255,255,255,.7)');
+  note(t, T.miss + 0.15, 0, 'Missed call', ['8:47 PM'], RED, 'call');
+  note(t, T.miss + 0.9, 1, 'New message · 8:48 PM', ['“Our furnace quit.', 'Anyone free tonight?”'], GREEN, 'msg');
+}
+function callScreen(t, t0, name, sub, subCol, opts = {}) {
+  const cy = PY + 230;
+  ctx.fillStyle = opts.bg || DARK; ctx.fillRect(PX, PY, PW, PH);
+  if (opts.rings) for (let i = 0; i < 3; i++) { const p = ((t - t0) * 0.8 + i / 3) % 1; circ(CX, cy, 76 + p * 120); ctx.strokeStyle = `rgba(255,255,255,${0.3 * (1 - p)})`; ctx.lineWidth = 4; ctx.stroke(); }
+  circ(CX, cy, 74); ctx.fillStyle = opts.avatar || GREY; ctx.fill(); handset(CX, cy, 1.1, WHITE);
+  text(name, CX, cy + 136, `700 42px ${F}`, WHITE);
+  text(sub, CX, cy + 184, `500 34px ${F}`, subCol);
+  if (opts.incoming) {
+    // decline / accept, nobody touches them
+    circ(CX - 110, PY + PH - 96, 50); ctx.fillStyle = RED; ctx.fill(); handset(CX - 110, PY + PH - 96, 0.8, WHITE, 2.35);
+    circ(CX + 110, PY + PH - 96, 50); ctx.fillStyle = GREEN; ctx.fill(); handset(CX + 110, PY + PH - 96, 0.8, WHITE);
+  } else { circ(CX, PY + PH - 96, 50); ctx.fillStyle = RED; ctx.fill(); handset(CX, PY + PH - 96, 0.8, WHITE, 2.35); }
+}
+function timesScreen(t) {
+  ctx.fillStyle = '#F6F0E6'; ctx.fillRect(PX, PY, PW, PH);
+  const row = (i, t0, who, time, col) => pop(t, t0, () => { const y = PY + 120 + i * 250;
+    rr(PX + 30, y, PW - 60, 190, 26); ctx.fillStyle = col; ctx.fill();
+    text(who, CX, y + 64, `700 34px ${F}`, WHITE); text(time, CX, y + 148, `700 76px ${F}`, WHITE); }, CX, PY + 215 + i * 250);
+  row(0, T.times + 0.1, 'She called', '8:47 PM', NAVY);
+  row(1, T.times + 0.7, 'You called back', '7:12 AM', C.coral);
+}
+function screen(t) {
+  ctx.save(); rr(PX, PY, PW, PH, 34); ctx.clip();
+  if (t < T.miss) callScreen(t, 0, 'Unknown caller', 'Incoming call' + dots(t), 'rgba(255,255,255,.8)', { rings: true, incoming: true, avatar: '#4C7BD9' });
+  else if (t < T.call) lockScreen(t);
+  else if (t < T.late) callScreen(t, T.call, 'Last night’s caller', 'Calling' + dots(t), 'rgba(255,255,255,.8)', { rings: true, avatar: '#4C7BD9' });
+  else if (t < T.times) {
+    const ended = t >= T.late + 1.9;
+    callScreen(t, T.late, 'Last night’s caller', ended ? 'Call ended' : 'Connected', ended ? C.coralLite : '#8FE3B8', { avatar: ended ? '#5A6078' : GREEN, bg: ended ? DARK : '#10261C' });
+    bubble(t, T.late + 0.3, ['“Oh, someone came', 'last night. Thanks!”'], PY + 30);
+  } else timesScreen(t);
+  ctx.restore();
+}
+function phone(t) {
+  // vibrate while it rings at 8:47 PM
+  const buzz = t < T.miss ? 4 * Math.sin(t * 90) * (Math.sin(t * 7.4) > 0 ? 1 : 0) : 0;
+  ctx.save(); ctx.translate(buzz, 0);
+  const tag = 'YOUR PHONE';
+  ctx.font = `700 30px ${F}`; ctx.letterSpacing = '6px'; const tw = ctx.measureText(tag).width + 56;
+  rr(520 - tw / 2, 450, tw, 56, 28); ctx.fillStyle = C.coral; ctx.fill(); text(tag, 520 + 3, 489, `700 30px ${F}`, WHITE); ctx.letterSpacing = '0px';
+  rr(PX - 20 + 12, PY - 20 + 16, PW + 40, PH + 40, 52); ctx.fillStyle = 'rgba(0,0,0,.28)'; ctx.fill();
+  rr(PX - 20, PY - 20, PW + 40, PH + 40, 52); ctx.fillStyle = '#0B0910'; ctx.fill();
+  screen(t);
+  ctx.restore();
+}
+function cam(t) { let punch = 0; for (const k of HITS) if (t >= k) punch += 0.022 * Math.exp(-(t - k) * 8); return 1 + punch + 0.004 * Math.sin(t * 0.9); }
+
+function title() {
+  const x = 140, y = 180, w = 800, h = 230;
+  rr(x + 8, y + 10, w, h, 24); ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fill();
+  rr(x, y, w, h, 24); ctx.fillStyle = C.cream; ctx.fill();
+  ctx.letterSpacing = '7px'; text('HVAC OWNERS:', x + 48, y + 64, `700 30px ${F}`, C.coral, 'left'); ctx.letterSpacing = '0px';
+  text('She called at 8:47 PM.', x + 48, y + 132, `700 56px ${F}`, NAVY, 'left');
+  text('When do you call back?', x + 48, y + 198, `700 56px ${F}`, C.coral, 'left');
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = c.t0 === 0 ? 1 : Math.min(1.08, sp(t - c.t0, { freq: 3.2, damp: 0.7 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  const lines = c.text.split('\n'); let fsz = 52; ctx.font = `700 ${fsz}px ${F}`;
+  const maxw = Math.max(...lines.map(l => ctx.measureText(l).width));
+  if (maxw > 620) { fsz = Math.floor(52 * 620 / maxw); ctx.font = `700 ${fsz}px ${F}`; }
+  const tw = Math.max(...lines.map(l => ctx.measureText(l).width)), lh = fsz * 1.22, w = tw + 60, h = 52 + lh * lines.length;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(500, 1340 + (lines.length - 1) * lh / 2); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  rr(-w / 2 + 6, -h / 2 + 8, w, h, 20); ctx.fillStyle = 'rgba(0,0,0,.25)'; ctx.fill();
+  rr(-w / 2, -h / 2, w, h, 20); ctx.fillStyle = C.cream; ctx.fill();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  lines.forEach((ln, j) => {
+    const by = -((lines.length - 1) * lh) / 2 + j * lh + fsz * 0.35, i = ln.indexOf(c.hi);
+    const pre = i < 0 ? ln : ln.slice(0, i), hi = i < 0 ? '' : c.hi, post = i < 0 ? '' : ln.slice(i + c.hi.length);
+    let x = -ctx.measureText(ln).width / 2;
+    ctx.fillStyle = NAVY; ctx.fillText(pre, x, by); x += ctx.measureText(pre).width;
+    ctx.fillStyle = C.coral; ctx.fillText(hi, x, by); x += ctx.measureText(hi).width; ctx.fillStyle = NAVY; ctx.fillText(post, x, by);
+  });
+  ctx.restore();
+}
+
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut));
+  ctx.save(); circ(520, 880, 20 + 1700 * k); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780); glow.addColorStop(0, `rgba(240,100,90,${0.3 * k})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => text('You run the business.', 540, 880, '400 66px "Young Serif"', C.cream));
+  rise(T.tag2, () => text('We help it scale.', 540, 968, '400 66px "Young Serif"', C.coralLite));
+  rise(T.serv, () => text('Websites · Ads · AI receptionists', 540, 1100, `500 32px ${F}`, C.coralLite));
+  rise(T.url, () => text('horizonscales.com', 540, 1174, '800 44px "Nunito"', C.cream));
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 0.6;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = '#0E1838'; ctx.fillRect(0, 0, 1080, 1920);
+  if (t < T.shut) {
+    background(t);
+    const z = cam(t); ctx.save(); ctx.translate(520, 880); ctx.scale(z, z); ctx.translate(-520, -880); phone(t); ctx.restore();
+    title(); CAPS.forEach(cp => caption(cp, t));
+  }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', '800 44px "Nunito"', `700 32px ${F}`, `500 32px ${F}`]);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
