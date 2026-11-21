@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Dead January — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Nunito"; src: url(fonts/Nunito.woff2) format("woff2"); font-weight: 200 1000; }
+  html, body { margin: 0; background: #7DBA58; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, HITS, TAPS } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, lerp, TAU } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+// Plain (RUNBOOK v2): YOUR PHONE over a mowed lawn seen from above; the lawn turns to leaves, then snow.
+const INK = '#1F2A24', FOREST = '#1E3A2A', WHITE = '#FFFFFF', GREEN = '#3E9A5A', RED = '#E2483D', BLUE = '#2F7CF6', GREY = '#8A9094', LIGHT = '#EEF1F3', DCORAL = '#D3483D';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const F = '"Nunito"';
+// frame safety: hook block y 180–410 (x 140–940); phone x 300–740, y 540–1220, tag at y 450;
+// captions centred at x 520 around y 1350 (≤ 640 wide); nothing right of x 864 below y 920 or under y 1630 (background only).
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+const text = (s, x, y, font, col, align = 'center') => { ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); };
+const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+const hex = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const mix = (a, b, k) => { const A = hex(a), B = hex(b); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * k)).join(',')})`; };
+const mix3 = (a, b, c, s) => (s < 0.5 ? mix(a, b, s * 2) : mix(b, c, (s - 0.5) * 2));
+
+// ── season: 0 summer → 0.5 fall → 1 winter, while the months flip
+const season = t => E.inOutCubic(seg(t, T.flip, T.jan));
+function background(t) {
+  const s = season(t);
+  const c1 = mix3('#86C25E', '#C2A65A', '#EEF2F6', s), c2 = mix3('#72AE4C', '#AE8F49', '#DDE5EC', s);
+  ctx.fillStyle = c2; ctx.fillRect(0, 0, 1080, 1920);
+  // mower stripes, drifting slowly
+  ctx.save(); ctx.translate(540, 960); ctx.rotate(-0.42); const off = (t * 18) % 280;
+  for (let x = -1800 + off; x < 1800; x += 280) { ctx.fillStyle = c1; ctx.fillRect(x, -1600, 140, 3200); }
+  ctx.restore();
+  // a soft sun in summer
+  const g = ctx.createRadialGradient(960, 120, 0, 960, 120, 520); g.addColorStop(0, `rgba(255,230,150,${0.45 * (1 - s)})`); g.addColorStop(1, 'rgba(255,230,150,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 1920);
+  // falling leaves in the fall
+  const lv = Math.sin(Math.PI * Math.min(1, Math.max(0, (s - 0.1) / 0.75)));
+  if (lv > 0.02) for (let i = 0; i < 26; i++) {
+    const x = (hash(i) * 1200 + t * 40 * (0.5 + hash(i + 9))) % 1160 - 40, y = (hash(i + 3) * 1920 + t * 160 * (0.6 + hash(i + 5))) % 2000 - 40;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(t * (1 + hash(i + 7) * 2) + i); ctx.globalAlpha = lv;
+    ctx.fillStyle = ['#D9752F', '#C9562A', '#E5A33A'][i % 3]; ctx.beginPath(); ctx.ellipse(0, 0, 18, 9, 0, 0, TAU); ctx.fill(); ctx.restore();
+  }
+  // snow in winter
+  const sn = Math.max(0, (s - 0.6) / 0.4);
+  if (sn > 0) for (let i = 0; i < 70; i++) {
+    const x = (hash(i + 40) * 1080 + Math.sin(t + i) * 20), y = (hash(i + 70) * 1920 + t * 90 * (0.6 + hash(i + 90))) % 1960 - 20;
+    circ(x, y, 3 + hash(i + 11) * 5); ctx.fillStyle = `rgba(255,255,255,${0.9 * sn})`; ctx.fill();
+    circ(x, y, 3 + hash(i + 11) * 5); ctx.strokeStyle = `rgba(150,170,190,${0.35 * sn})`; ctx.lineWidth = 1.5; ctx.stroke();
+  }
+}
+
+// ── the phone (screen 440 × 680 at PX, PY)
+const PX = 300, PY = 540, PW = 440, PH = 680, CX = PX + PW / 2;
+function pop(t, t0, fn, cx, cy) { const k = Math.min(1.05, sp(t - t0, { freq: 3, damp: 0.7 })); if (k <= 0.01) return; ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); fn(); ctx.restore(); }
+function statusBar(t, dark) {
+  const s = t < T.flip ? '2:14' : '10:02';
+  text(s, PX + 40, PY + 44, `800 26px ${F}`, dark ? WHITE : INK, 'left');
+  ctx.fillStyle = dark ? WHITE : INK; for (let i = 0; i < 4; i++) ctx.fillRect(PX + PW - 120 + i * 11, PY + 40 - 6 - i * 5, 7, 6 + i * 5);
+  rr(PX + PW - 66, PY + 22, 36, 20, 5); ctx.strokeStyle = dark ? WHITE : INK; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillRect(PX + PW - 63, PY + 25, 26, 14);
+}
+const JOBS = ['Mow', 'Patio', 'Mulch', 'Edging', 'Trim', 'Sod', 'Mow', 'Cleanup'];
+// a month grid: start weekday, days, density 0..1 of booked days, fill 0..1 how far June has filled in
+function calendar(t, name, start, days, density, fill = 1, dy = 0) {
+  ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH);
+  statusBar(t, false);
+  ctx.save(); ctx.translate(0, dy);
+  text(name, PX + 30, PY + 124, `800 50px ${F}`, DCORAL, 'left');
+  ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach((d, i) => text(d, PX + 20 + 57.1 * i + 28, PY + 172, `700 20px ${F}`, GREY));
+  const cw = 57.1, ch = 86, gx = PX + 20, gy = PY + 186;
+  ctx.fillStyle = '#E3E6E8'; for (let r = 0; r <= 5; r++) ctx.fillRect(gx, gy + r * ch, cw * 7, 2);
+  let count = 0;
+  for (let d = 1; d <= days; d++) {
+    const i = start + d - 1, c = i % 7, r = Math.floor(i / 7); if (r > 4) continue;
+    const x = gx + c * cw, y = gy + r * ch;
+    text(String(d), x + cw / 2, y + 26, `700 19px ${F}`, INK);
+    const on = hash(d * 3.1 + name.length) < density && (d - 1) / days < fill;
+    if (on) { count++;
+      rr(x + 4, y + 36, cw - 8, 20, 6); ctx.fillStyle = GREEN; ctx.fill();
+      text(JOBS[d % JOBS.length], x + cw / 2, y + 51, `700 13px ${F}`, WHITE);
+      if (density > 0.8 && hash(d + 50) < 0.6) { rr(x + 4, y + 60, cw - 8, 20, 6); ctx.fillStyle = '#7FBF8E'; ctx.fill(); text(JOBS[(d + 3) % JOBS.length], x + cw / 2, y + 75, `700 13px ${F}`, WHITE); }
+    }
+  }
+  if (density === 0) text('Nothing scheduled', CX, PY + 650, `700 26px ${F}`, GREY);
+  ctx.restore();
+}
+const NOTES = [
+  { t0: 0.9, app: 'Messages', line: 'Can you mow Saturday?' },
+  { t0: 1.9, app: 'Phone', line: 'Missed call' },
+  { t0: 3.2, app: 'Phone', line: 'Missed call (2)' },
+  { t0: 3.75, app: 'Messages', line: 'Need a quote for edging' },
+  { t0: 4.3, app: 'Phone', line: 'Voicemail · 3 new' },
+  { t0: 4.85, app: 'Phone', line: 'Missed call (3)' },
+  { t0: TAPS[0] + 1.0, app: 'Phone', line: 'Missed call (4)', red: true },
+];
+function banners(t) {
+  if (t >= NOTES[0].t0) { ctx.fillStyle = `rgba(30,40,35,${0.18 * Math.min(1, (t - NOTES[0].t0) * 3)})`; ctx.fillRect(PX, PY + 140, PW, PH); }
+  const shown = NOTES.filter(n => t >= n.t0).reverse().slice(0, 4);
+  shown.forEach((n, i) => {
+    const k = Math.min(1, sp(t - n.t0, { freq: 3.4, damp: 0.75 }));
+    const target = PY + 150 + i * 92, y = i === 0 ? lerp(PY - 80, target, k) : target;
+    ctx.save();
+    rr(PX + 14, y + 6, PW - 28, 84, 20); ctx.fillStyle = 'rgba(0,0,0,.14)'; ctx.fill();
+    rr(PX + 14, y, PW - 28, 84, 20); ctx.fillStyle = '#FAFAFA'; ctx.fill(); ctx.strokeStyle = '#DADFE3'; ctx.lineWidth = 2; ctx.stroke();
+    rr(PX + 30, y + 18, 48, 48, 12); ctx.fillStyle = n.app === 'Phone' ? GREEN : BLUE; ctx.fill();
+    if (n.app === 'Phone') phoneGlyph(PX + 54, y + 42, 12, WHITE); else { rr(PX + 40, y + 30, 28, 20, 8); ctx.fillStyle = WHITE; ctx.fill(); }
+    text(n.app, PX + 92, y + 36, `800 21px ${F}`, INK, 'left'); text('now', PX + PW - 34, y + 36, `600 18px ${F}`, GREY, 'right');
+    text(n.line, PX + 92, y + 66, `${n.red ? 800 : 600} 23px ${F}`, n.red ? RED : '#3B4348', 'left');
+    ctx.restore();
+  });
+}
+function phoneGlyph(x, y, s, col) { ctx.save(); ctx.translate(x, y); ctx.rotate(-0.75);
+  ctx.strokeStyle = col; ctx.lineWidth = s * 0.55; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, s * 0.9, s * 1.25, Math.PI * 1.22, Math.PI * 1.78); ctx.stroke();
+  ctx.fillStyle = col; for (const sx of [-1, 1]) { ctx.save(); ctx.translate(sx * s * 0.95, s * 0.2); ctx.rotate(sx * 0.6); rr(-s * 0.32, -s * 0.2, s * 0.64, s * 0.75, s * 0.2); ctx.fill(); ctx.restore(); }
+  ctx.restore(); }
+// an incoming call; tapAt = when the thumb taps Decline
+function incoming(t, t0, who, sub, tapAt, warn) {
+  const g = ctx.createLinearGradient(0, PY, 0, PY + PH); g.addColorStop(0, warn ? '#4A2A2A' : '#2C3A33'); g.addColorStop(1, '#151A18'); ctx.fillStyle = g; ctx.fillRect(PX, PY, PW, PH);
+  statusBar(t, true);
+  const shake = t < tapAt ? Math.sin(t * 60) * 3 * (Math.floor(t * 2.5) % 2) : 0;
+  ctx.save(); ctx.translate(shake, 0);
+  if (warn) { rr(CX - 110, PY + 120, 220, 40, 20); ctx.fillStyle = 'rgba(226,72,61,.25)'; ctx.fill(); text('⚠ Spam risk', CX, PY + 149, `800 22px ${F}`, '#FFB4AC'); }
+  text(who, CX, PY + 236, `800 44px ${F}`, WHITE);
+  text(sub, CX, PY + 282, `600 26px ${F}`, 'rgba(255,255,255,.7)');
+  ctx.restore();
+  const declined = t >= tapAt + 0.15;
+  if (!declined) {
+    const pulse = 1 + 0.06 * Math.sin(t * 9);
+    for (const [x, col, lbl] of [[PX + 110, RED, 'Decline'], [PX + PW - 110, GREEN, 'Accept']]) {
+      ctx.save(); ctx.translate(x, PY + 540); const pr = x < CX && t >= tapAt ? 0.9 : (x > CX ? pulse : 1); ctx.scale(pr, pr);
+      circ(0, 0, 50); ctx.fillStyle = col; ctx.fill(); phoneGlyph(0, 0, 18, WHITE); ctx.restore();
+      text(lbl, x, PY + 628, `700 22px ${F}`, WHITE);
+    }
+  } else pop(t, tapAt + 0.2, () => { text('Call declined', CX, PY + 540, `800 34px ${F}`, '#FFB4AC'); }, CX, PY + 530);
+  const th = seg(t, tapAt - 0.45, tapAt) * (1 - seg(t, tapAt + 0.2, tapAt + 0.6));
+  if (th > 0) { ctx.globalAlpha = th; circ(PX + 110 + 10, PY + 540 + (1 - th) * 90, 36); ctx.fillStyle = 'rgba(255,255,255,.35)'; ctx.fill(); ctx.globalAlpha = 1; }
+}
+function recents(t) {
+  ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH);
+  statusBar(t, false);
+  text('Recents', PX + 30, PY + 124, `800 46px ${F}`, INK, 'left');
+  rr(PX + 30, PY + 150, PW - 60, 44, 12); ctx.fillStyle = LIGHT; ctx.fill(); rr(PX + 34, PY + 154, (PW - 68) / 2, 36, 10); ctx.fillStyle = WHITE; ctx.fill();
+  text('All', PX + 30 + (PW - 60) / 4, PY + 180, `700 22px ${F}`, INK); text('Missed', PX + 30 + 3 * (PW - 60) / 4, PY + 180, `700 22px ${F}`, GREY);
+  // pull-to-refresh spinner, then nothing
+  const k = seg(t, T.recents + 0.1, T.recents + 0.8);
+  if (k > 0 && k < 1) { ctx.save(); ctx.translate(CX, PY + 250); ctx.rotate(t * 8); for (let i = 0; i < 8; i++) { ctx.rotate(TAU / 8); ctx.fillStyle = `rgba(80,90,95,${(i + 1) / 8})`; rr(-3, 12, 6, 14, 3); ctx.fill(); } ctx.restore(); }
+  if (k >= 0.6) text('No recent calls', CX, PY + 380, `700 30px ${F}`, GREY);
+}
+function both(t) {
+  ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH);
+  statusBar(t, false);
+  const card = (i, t0, name, dens, lbl, col) => pop(t, t0, () => {
+    const y = PY + 76 + i * 300;
+    rr(PX + 20, y, PW - 40, 280, 22); ctx.fillStyle = i === 0 ? '#EAF5EC' : '#EEF2F6'; ctx.fill();
+    text(name, PX + 44, y + 52, `800 34px ${F}`, DCORAL, 'left');
+    for (let d = 0; d < 30; d++) { const c = (d + 2) % 7, r = Math.floor((d + 2) / 7); const x = PX + 44 + c * 50, yy = y + 74 + r * 30;
+      rr(x, yy, 42, 22, 5); ctx.fillStyle = dens && hash(d + 7) < 0.97 ? GREEN : '#D3DAE0'; ctx.fill(); }
+    text(lbl, PX + 44, y + 260, `800 26px ${F}`, col, 'left');
+  }, CX, PY + 216 + i * 300);
+  card(0, T.both + 0.1, 'June', true, 'Too busy to answer', GREEN);
+  card(1, T.both + 0.55, 'January', false, 'Nothing to answer', '#5E6B74');
+}
+const MONTHS = [['July', 4, 31, 0.9], ['August', 0, 31, 0.8], ['September', 3, 30, 0.55], ['October', 5, 31, 0.32], ['November', 1, 30, 0.14], ['December', 3, 31, 0.05]];
+function screen(t) {
+  ctx.save(); rr(PX, PY, PW, PH, 34); ctx.clip();
+  if (t < T.call) { calendar(t, 'June', 2, 30, 0.97, E.outCubic(seg(t, -0.9, 2.4))); banners(t); }
+  else if (t < T.flip) {
+    if (t < TAPS[0] + 0.9) incoming(t, T.call, 'Unknown caller', 'mobile', TAPS[0], false);
+    else { calendar(t, 'June', 2, 30, 0.97, 1); banners(t); }
+  }
+  else if (t < T.jan) {
+    const i = Math.min(MONTHS.length - 1, Math.floor((t - T.flip) / 0.45)), m = MONTHS[i];
+    const dy = 40 * (1 - E.outCubic(seg(t, T.flip + i * 0.45, T.flip + i * 0.45 + 0.25)));
+    calendar(t, m[0], m[1], m[2], m[3], 1, dy);
+  }
+  else if (t < T.recents) calendar(t, 'January', 5, 31, 0, 1, 50 * (1 - E.outCubic(seg(t, T.jan, T.jan + 0.35))));
+  else if (t < T.spam) recents(t);
+  else if (t < T.both) { if (t < TAPS[1] + 0.25) incoming(t, T.spam, 'Spam Likely', 'mobile', TAPS[1], true); else recents(T.both - 0.01); }
+  else both(t);
+  ctx.restore();
+}
+function phone(t) {
+  const tag = 'YOUR PHONE';
+  ctx.font = `800 30px ${F}`; ctx.letterSpacing = '6px'; const tw = ctx.measureText(tag).width + 56;
+  rr(520 - tw / 2, 450, tw, 56, 28); ctx.fillStyle = FOREST; ctx.fill(); text(tag, 520 + 3, 489, `800 30px ${F}`, C.cream); ctx.letterSpacing = '0px';
+  rr(PX - 20 + 12, PY - 20 + 18, PW + 40, PH + 40, 52); ctx.fillStyle = 'rgba(20,40,25,.28)'; ctx.fill();
+  rr(PX - 20, PY - 20, PW + 40, PH + 40, 52); ctx.fillStyle = '#16191B'; ctx.fill();
+  screen(t);
+}
+function cam(t) { let punch = 0; for (const k of HITS) if (t >= k) punch += 0.022 * Math.exp(-(t - k) * 8); return 1 + punch + 0.004 * Math.sin(t * 0.9); }
+
+function title() {
+  const x = 140, y = 180, w = 800, h = 230;
+  rr(x + 8, y + 10, w, h, 26); ctx.fillStyle = 'rgba(10,30,15,.28)'; ctx.fill();
+  rr(x, y, w, h, 26); ctx.fillStyle = FOREST; ctx.fill();
+  ctx.letterSpacing = '7px'; text('LANDSCAPERS:', x + 50, y + 62, `800 30px ${F}`, C.sun, 'left'); ctx.letterSpacing = '0px';
+  text('Your phone rings all June.', x + 50, y + 132, `700 52px ${F}`, C.cream, 'left');
+  text('Who calls in January?', x + 50, y + 198, `700 52px ${F}`, C.coralLite, 'left');
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = c.t0 === 0 ? 1 : Math.min(1.08, sp(t - c.t0, { freq: 3.2, damp: 0.7 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  const lines = c.text.split('\n'); let fsz = 54; ctx.font = `700 ${fsz}px ${F}`;
+  const maxw = Math.max(...lines.map(l => ctx.measureText(l).width));
+  if (maxw > 620) { fsz = Math.floor(54 * 620 / maxw); ctx.font = `700 ${fsz}px ${F}`; }
+  const tw = Math.max(...lines.map(l => ctx.measureText(l).width)), lh = fsz * 1.2, w = tw + 64, h = 50 + lh * lines.length;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(520, 1350 + (lines.length - 1) * lh / 2); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  rr(-w / 2 + 6, -h / 2 + 8, w, h, 22); ctx.fillStyle = 'rgba(10,30,15,.28)'; ctx.fill();
+  rr(-w / 2, -h / 2, w, h, 22); ctx.fillStyle = C.cream; ctx.fill(); ctx.strokeStyle = FOREST; ctx.lineWidth = 3; ctx.stroke();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  lines.forEach((ln, j) => {
+    const by = -((lines.length - 1) * lh) / 2 + j * lh + fsz * 0.35, i = ln.indexOf(c.hi);
+    const pre = i < 0 ? ln : ln.slice(0, i), hi = i < 0 ? '' : c.hi, post = i < 0 ? '' : ln.slice(i + c.hi.length);
+    let x = -ctx.measureText(ln).width / 2;
+    ctx.fillStyle = FOREST; ctx.fillText(pre, x, by); x += ctx.measureText(pre).width;
+    ctx.fillStyle = DCORAL; ctx.fillText(hi, x, by); x += ctx.measureText(hi).width; ctx.fillStyle = FOREST; ctx.fillText(post, x, by);
+  });
+  ctx.restore();
+}
+
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut));
+  ctx.save(); circ(520, 880, 20 + 1700 * k); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780); glow.addColorStop(0, `rgba(240,100,90,${0.3 * k})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => text('You run the business.', 540, 880, '400 66px "Young Serif"', C.cream));
+  rise(T.tag2, () => text('We help it scale.', 540, 968, '400 66px "Young Serif"', C.coralLite));
+  rise(T.serv, () => text('Websites · Ads · AI receptionists', 540, 1100, `600 32px ${F}`, C.coralLite));
+  rise(T.url, () => text('horizonscales.com', 540, 1174, `800 44px ${F}`, C.cream));
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 1.6;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = '#7DBA58'; ctx.fillRect(0, 0, 1080, 1920);
+  if (t < T.shut) {
+    background(t);
+    const z = cam(t); ctx.save(); ctx.translate(520, 880); ctx.scale(z, z); ctx.translate(-520, -880); phone(t); ctx.restore();
+    title(); CAPS.forEach(cp => caption(cp, t));
+  }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', `800 44px ${F}`, `700 32px ${F}`, `600 32px ${F}`]);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
