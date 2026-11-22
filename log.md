@@ -67,21 +67,24 @@ Watch rate = average watch time ÷ length. Engagement = (likes + comments + shar
 | brag-launch (hand-made) | TikTok | Nov 14 eve | 63 | ≈11% (2.28 s of 20) | 0 | 0 | 0 | – | 0% | – | no (<300) |
 | brag-launch (hand-made) | Instagram | Nov 14 eve | 29 | ≈11% (2.24 s of 20) | 0 | 0 | 0 | 0 | 0% | – | no (<300) |
 | brag-launch (hand-made) | YouTube | Nov 14 eve | 34 | – | 1 | 0 | – | – | 2.9% | – | no (<300) |
-| #18 three-roofers | TikTok | Nov 15 | 337 | **≈24% (5.81 s of 24)** | 8 | 0 | 0 | – | 2.4% | – | **yes** (first counted nightly TikTok watch rate) |
+| #18 three-roofers | TikTok | Nov 15 | 366 | **≈24% (5.76 s of 24)** | 10 | 0 | 0 | – | 2.7% | – | **yes** (first counted nightly TikTok watch rate) |
 | #18 three-roofers | Instagram | Nov 15 | 171 | ≈35% (8.31 s of 24) | 1 | 0 | 0 | 0 | 0.6% | – (Metricool doesn't list it) | no (<300) |
-| #18 three-roofers | YouTube | Nov 15 | 539 | – (no watch time) | 5 | 0 | – | – | 0.9% | – | yes (views, likes, comments only) |
+| #18 three-roofers | YouTube | Nov 15 | 538 | – (no watch time) | 5 | 0 | – | – | 0.9% | – | yes (views, likes, comments only) |
 | #19 one-tap | TikTok | Nov 16 | 108 | ≈8% (1.89 s of 23) | 0 | 0 | 0 | – | 0% | – | no (<300) |
 | #19 one-tap | Instagram | Nov 16 | 26 | ≈12% (2.84 s of 23) | 0 | 0 | 0 | 0 | 0% | – (Metricool doesn't list it) | no (<300) |
 | #19 one-tap | YouTube | Nov 16 | 10 | – | 0 | 0 | – | – | 0% | – | no (<300) |
 | #20 spot-it | TikTok | Nov 17 | 101 | ≈8% (1.88 s of 23.5) | 0 | 0 | 0 | – | 0% | – | no (<300) |
 | #20 spot-it | Instagram | Nov 17 | 54 | ≈20% (4.59 s of 23.5) | 0 | 0 | 0 | 0 | 0% | – (Metricool doesn't list it) | no (<300) |
-| #20 spot-it | YouTube | Nov 17 | 191 | – | 0 | 0 | – | – | 0% | – | no (<300) |
+| #20 spot-it | YouTube | Nov 17 | 193 | – | 0 | 0 | – | – | 0% | – | no (<300) |
 | #22 next-plumber | TikTok | Nov 18 | 109 | ≈8% (1.96 s of 24) | 1 | 0 | 0 | – | 0.9% | – | no (<300) |
 | #22 next-plumber | Instagram | Nov 18 | 126 | ≈20% (4.80 s of 24) | 0 | 0 | 0 | 0 | 0% | – (Metricool doesn't list it) | no (<300) |
-| #22 next-plumber | YouTube | Nov 18 | 39 | – | 0 | 0 | – | – | 0% | – | no (<300) |
+| #22 next-plumber | YouTube | Nov 18 | 41 | – | 0 | 0 | – | – | 0% | – | no (<300) |
 | #23 after-five | TikTok | Nov 19 | 78 | ≈10% (2.19 s of 22.2) | 1 | 0 | 0 | – | 1.3% | – | no (<300) |
 | #23 after-five | Instagram | Nov 19 | 86 | ≈34% (7.49 s of 22.2) | 0 | 0 | 0 | 0 | 0% | – (Metricool doesn't list it) | no (<300) |
 | #23 after-five | YouTube | Nov 19 | 55 | – | 0 | 0 | – | – | 0% | – | no (<300) |
+| #24 first-reply | TikTok | Nov 20 | 91 | ≈4% (1.02 s of 22.8) | 0 | 0 | 0 | – | 0% | – | no (<300) |
+| #24 first-reply | Instagram | Nov 20 | 52 | ≈22% (4.91 s of 22.8) | 0 | 0 | 0 | 0 | 0% | – (Metricool doesn't list it) | no (<300) |
+| #24 first-reply | YouTube | Nov 20 | 9 | – | 0 | 0 | – | – | 0% | – | no (<300) |
 
 Baseline pulled Nov 10 from Metricool (TikTok average watch time comes in whole seconds, so short-video rates are rough). #9 was too new to count.
 
@@ -115,6 +118,8 @@ Nov 20 pull (nightly run, 1:30 AM MT; Buffer numbers refreshed by Buffer Nov 19,
 Nov 21 pull (nightly run, 1:30 AM MT; Buffer numbers refreshed by Buffer Nov 20, 7–8 PM MT; Metricool best-time only). **#22 next-plumber passed 48 h** (rows above, all under 300, nothing counts): TikTok 109 views at ≈8%, Instagram 126 at ≈20%, YouTube 39. Too early to count, for the record: **#23 after-five** (Nov 19, 10 AM, ~40 h): TikTok 78 views, 2.19 s (≈10% of 22.2 s), 1 like; Instagram 86 views, 7.49 s (≈34%, the best Instagram watch rate since #16); YouTube 47 views. **#24 first-reply** (Nov 20, 10 AM, ~16 h; all 3 posts "sent"): TikTok 91 views, 1.02 s (≈4% of 22.8 s); Instagram 32 views, 4.61 s (≈20%); YouTube 1 view. Counted watch rates so far (all TEXT): #16 Instagram ≈47%, #18 TikTok ≈24%. Buffer numbers: same fields as Nov 14–20 (watch time yes on TikTok and Instagram, no on YouTube). 0 posts were scheduled in Buffer before tonight's 3.
 
 Nov 22 pull (nightly run, 1:30 AM MT; Buffer numbers refreshed by Buffer Nov 21, 12 PM (TikTok) and Nov 21, 7 PM MT (Instagram, YouTube); Metricool best-time only). **#23 after-five passed 48 h** (rows above, all under 300, nothing counts): TikTok 78 views at ≈10%, 1 like; Instagram 86 at ≈34% (the best Instagram watch rate since #16, but under 300); YouTube 55. Too early to count, for the record: **#24 first-reply** (Nov 20, 10 AM, ~40 h): TikTok 91 views, 1.02 s (≈4% of 22.8 s); Instagram 52 views, 4.91 s (≈22%); YouTube 9 views. **#25 dead-january** (Nov 21, 10 AM, ~16 h; all 3 posts "sent"): TikTok 46 views, 0.83 s (≈4% of 23.4 s); Instagram 8 views, 4.43 s (≈19%); YouTube 23 views. No likes, comments, shares or saves on #24 or #25 yet. Counted watch rates so far (all TEXT): #16 Instagram ≈47%, #18 TikTok ≈24%. Buffer numbers: same fields as Nov 14–21 (watch time yes on TikTok and Instagram, no on YouTube). 0 posts were scheduled in Buffer before tonight's 3.
+
+Nov 22 Sunday scorecard pull (11:45 AM MT; Buffer numbers refreshed by Buffer Nov 22, 11 AM–12 PM MT for TikTok and Instagram, Nov 21, 6:51 PM MT for YouTube; Metricool lists nothing newer than #16 on Instagram or TikTok and still no YouTube numbers). **#24 first-reply passed 48 h** (rows above, all under 300): TikTok 91 views at ≈4%, Instagram 52 at ≈22%, YouTube 9. Refreshed: #18 TikTok 366 views, 5.76 s (≈24%), 10 likes; #18 YouTube 538; #20 YouTube 193; #22 YouTube 41; other rows unchanged or within a few views. Too early to count, for the record: **#25 dead-january** (Nov 21, ~26 h): TikTok 113 views, 1.12 s (≈5% of 23.4 s); Instagram 14 views, 3.41 s (≈15%); YouTube 23. **#26 slow-site** (today, ~2 h): TikTok 31 views, 1.79 s; Instagram 7; YouTube 0. All 21 Buffer posts from Nov 16–22 are "sent", none failed; 0 posts scheduled on any channel. No post this week passed 300 views on any app. Buffer numbers: same fields as Nov 14–21 (watch time yes on TikTok and Instagram, no on YouTube). Scorecard: `scorecards/2026-11-22.md`.
 
 ## Tests
 - **Nov 18, 9:50 PM: VOICE BACK ON HOLD, Test 1 paused again.** Kai heard Adam, Echo, Liam and Onyx in a test video ("8:47 PM", not posted): "no emotion at all ... just a monotone". No voiced nightly video was made. Every video is TEXT until Kai picks another way to add a voice.
