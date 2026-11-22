@@ -1,0 +1,261 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Slow Site — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Bricolage"; src: url(fonts/BricolageGrotesque.woff2) format("woff2"); font-weight: 400 800; }
+  html, body { margin: 0; background: #7F93AE; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, HITS, TAPS } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, lerp, TAU } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+// Plain (RUNBOOK v2): HER PHONE in front of her house at dusk, the garage door stuck crooked behind it.
+const INK = '#1E2733', SLATE = '#243447', WHITE = '#FFFFFF', GREEN = '#33A35A', RED = '#E2483D', BLUE = '#2F6FD6', GREY = '#8A9198', LIGHT = '#EEF1F4', DCORAL = '#D9503F', ORANGE = '#F07A2E';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const F = '"Bricolage"';
+// frame safety: hook block y 180–410 (x 140–940); phone x 300–740, y 540–1220, tag at y 450;
+// captions centred at x 520 around y 1350 (≤ 640 wide); nothing right of x 864 below y 920 or under y 1630 (background only).
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+const text = (s, x, y, font, col, align = 'center') => { ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); };
+const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ── background: dusk sky, her house, a garage door stuck crooked, the driveway
+function background(t) {
+  const sky = ctx.createLinearGradient(0, 0, 0, 760); sky.addColorStop(0, '#5F7699'); sky.addColorStop(0.7, '#B7A3B0'); sky.addColorStop(1, '#EDB98E');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, 1080, 760);
+  // a few slow clouds
+  for (let i = 0; i < 4; i++) { const x = ((hash(i) * 1300 + t * (8 + i * 3)) % 1400) - 160, y = 120 + i * 110;
+    ctx.fillStyle = 'rgba(255,240,230,.22)'; rr(x, y, 220 + hash(i + 4) * 160, 34, 17); ctx.fill(); }
+  // house: roof and siding
+  ctx.fillStyle = '#3A3F4A'; ctx.beginPath(); ctx.moveTo(-60, 640); ctx.lineTo(540, 420); ctx.lineTo(1140, 640); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#D8CDBD'; ctx.fillRect(0, 630, 1080, 1010);
+  ctx.fillStyle = 'rgba(120,100,80,.12)'; for (let y = 650; y < 1640; y += 34) ctx.fillRect(0, y, 1080, 3);
+  // porch light, gently flickering warm glow
+  const fl = 0.85 + 0.15 * Math.sin(t * 7) * Math.sin(t * 2.3);
+  const g = ctx.createRadialGradient(80, 760, 0, 80, 760, 260); g.addColorStop(0, `rgba(255,214,140,${0.55 * fl})`); g.addColorStop(1, 'rgba(255,214,140,0)');
+  ctx.fillStyle = g; ctx.fillRect(0, 500, 400, 600); rr(66, 740, 28, 44, 8); ctx.fillStyle = '#FFE2A8'; ctx.fill();
+  // garage opening and the stuck door (tilted, one corner lower)
+  const gx = 150, gy = 720, gw = 780, gh = 900;
+  ctx.fillStyle = '#2F4256'; rr(gx - 26, gy - 26, gw + 52, gh + 26, 10); ctx.fill();
+  ctx.fillStyle = '#1A1E24'; ctx.fillRect(gx, gy, gw, gh);
+  const tilt = 0.075 + 0.006 * Math.sin(t * 3.1);          // the door shudders a little: it's stuck
+  ctx.save(); ctx.beginPath(); ctx.rect(gx, gy, gw, gh); ctx.clip();
+  ctx.translate(gx, gy + 540); ctx.rotate(tilt);
+  for (let i = 0; i < 8; i++) { const y = -680 + i * 110;
+    ctx.fillStyle = i % 2 ? '#EFEBE3' : '#F5F2EC'; ctx.fillRect(-40, y, gw + 80, 108);
+    ctx.fillStyle = '#CFC7B8'; ctx.fillRect(-40, y + 104, gw + 80, 6);
+    for (let k = 0; k < 4; k++) { rr(30 + k * 190, y + 20, 160, 66, 6); ctx.strokeStyle = 'rgba(160,150,135,.55)'; ctx.lineWidth = 3; ctx.stroke(); } }
+  ctx.restore();
+  // driveway
+  ctx.fillStyle = '#B9B3AA'; ctx.fillRect(0, 1640, 1080, 280);
+  ctx.fillStyle = 'rgba(90,85,80,.18)'; ctx.fillRect(0, 1640, 1080, 10); for (let x = 120; x < 1080; x += 300) ctx.fillRect(x, 1650, 4, 270);
+}
+
+// ── the phone (screen 440 × 680 at PX, PY)
+const PX = 300, PY = 540, PW = 440, PH = 680, CX = PX + PW / 2;
+function pop(t, t0, fn, cx, cy) { const k = Math.min(1.05, sp(t - t0, { freq: 3, damp: 0.7 })); if (k <= 0.01) return; ctx.save(); ctx.translate(cx, cy); ctx.scale(k, k); ctx.translate(-cx, -cy); fn(); ctx.restore(); }
+function statusBar(t, dark) {
+  text('5:48', PX + 40, PY + 44, `800 26px ${F}`, dark ? WHITE : INK, 'left');
+  ctx.fillStyle = dark ? WHITE : INK; for (let i = 0; i < 4; i++) ctx.fillRect(PX + PW - 120 + i * 11, PY + 40 - 6 - i * 5, 7, 6 + i * 5);
+  rr(PX + PW - 66, PY + 22, 36, 20, 5); ctx.strokeStyle = dark ? WHITE : INK; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillRect(PX + PW - 63, PY + 25, 26, 14);
+}
+function phoneGlyph(x, y, s, col) { ctx.save(); ctx.translate(x, y); ctx.rotate(-0.75);
+  ctx.strokeStyle = col; ctx.lineWidth = s * 0.55; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, s * 0.9, s * 1.25, Math.PI * 1.22, Math.PI * 1.78); ctx.stroke();
+  ctx.fillStyle = col; for (const sx of [-1, 1]) { ctx.save(); ctx.translate(sx * s * 0.95, s * 0.2); ctx.rotate(sx * 0.6); rr(-s * 0.32, -s * 0.2, s * 0.64, s * 0.75, s * 0.2); ctx.fill(); ctx.restore(); }
+  ctx.restore(); }
+function thumb(t, at, x, y) {   // a soft fingertip that comes in, taps, leaves
+  const th = seg(t, at - 0.4, at) * (1 - seg(t, at + 0.15, at + 0.5)); if (th <= 0) return;
+  ctx.save(); ctx.globalAlpha = th; circ(x + 8, y + (1 - th) * 80, 34); ctx.fillStyle = 'rgba(60,70,85,.28)'; ctx.fill(); ctx.restore();
+  const r = seg(t, at, at + 0.35); if (r > 0 && r < 1) { circ(x, y, 20 + 40 * r); ctx.strokeStyle = `rgba(47,111,214,${0.5 * (1 - r)})`; ctx.lineWidth = 4; ctx.stroke(); }
+}
+// browser chrome: address bar + progress bar
+function browser(t, url, prog) {
+  ctx.fillStyle = '#F4F5F7'; ctx.fillRect(PX, PY, PW, 120); statusBar(t, false);
+  rr(PX + 70, PY + 62, PW - 100, 44, 22); ctx.fillStyle = '#E3E6EA'; ctx.fill();
+  text(url, PX + 70 + (PW - 100) / 2, PY + 92, `600 21px ${F}`, '#3C4550');
+  // back arrow
+  ctx.strokeStyle = BLUE; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(PX + 46, PY + 72); ctx.lineTo(PX + 32, PY + 84); ctx.lineTo(PX + 46, PY + 96); ctx.stroke();
+  if (prog !== null) { ctx.fillStyle = '#D5DAE0'; ctx.fillRect(PX, PY + 117, PW, 5); ctx.fillStyle = BLUE; ctx.fillRect(PX, PY + 117, PW * prog, 5); }
+}
+function spinner(t, x, y) { ctx.save(); ctx.translate(x, y); ctx.rotate(Math.floor(t * 12) * TAU / 12); for (let i = 0; i < 12; i++) { ctx.rotate(TAU / 12); ctx.fillStyle = `rgba(80,90,100,${(i + 1) / 12})`; rr(-4, 22, 8, 22, 4); ctx.fill(); } ctx.restore(); }
+// search results
+function results(t, tapAt, which) {
+  ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH); statusBar(t, false);
+  rr(PX + 24, PY + 70, PW - 48, 54, 27); ctx.fillStyle = LIGHT; ctx.fill();
+  circ(PX + 56, PY + 95, 10); ctx.strokeStyle = GREY; ctx.lineWidth = 3.5; ctx.stroke(); ctx.beginPath(); ctx.moveTo(PX + 63, PY + 102); ctx.lineTo(PX + 70, PY + 109); ctx.stroke();
+  text('garage door repair', PX + 82, PY + 105, `600 23px ${F}`, INK, 'left');
+  const item = (i, name, sub, url) => {
+    const y = PY + 160 + i * 200, hl = which === i && t >= tapAt - 0.05 && t < tapAt + 0.35;
+    rr(PX + 18, y, PW - 36, 178, 18); ctx.fillStyle = hl ? '#E4ECFA' : '#F7F8FA'; ctx.fill(); ctx.strokeStyle = '#E1E5EA'; ctx.lineWidth = 2; ctx.stroke();
+    text(url, PX + 40, y + 40, `500 19px ${F}`, GREEN, 'left');
+    text(name, PX + 40, y + 84, `800 30px ${F}`, BLUE, 'left');
+    text(sub, PX + 40, y + 124, `500 21px ${F}`, '#4A535D', 'left');
+    ctx.fillStyle = '#F2B233'; for (let k = 0; k < 5; k++) text('★', PX + 40 + k * 24, y + 158, `400 22px ${F}`, '#F2B233', 'left');
+  };
+  item(0, 'Your business', 'Garage door repair', 'yourbusiness.com');
+  item(1, 'Next garage door co.', 'Garage door repair', 'nextgaragedoor.com');
+  thumb(t, tapAt, which === 0 ? CX - 40 : CX - 10, PY + (which === 0 ? 240 : 440));
+}
+// your site: blank while loading
+function loading(t, t0) {
+  ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH);
+  const p = 0.08 + 0.34 * (1 - Math.exp(-(t - t0) * 0.5));
+  browser(t, 'yourbusiness.com', p);
+  spinner(t, CX, PY + 380);
+}
+// your site loaded: a desktop page squeezed onto a phone, then a pop-up
+function tiny(t) {
+  ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH);
+  const y0 = PY + 122;
+  ctx.fillStyle = '#2E3640'; ctx.fillRect(PX, y0, PW, 30);
+  ['Home', 'About', 'Services', 'Gallery', 'Reviews', 'Blog', 'Contact'].forEach((s, i) => text(s, PX + 22 + i * 58, y0 + 20, `500 10px ${F}`, '#D6DCE2', 'left'));
+  const g = ctx.createLinearGradient(0, y0 + 30, 0, y0 + 230); g.addColorStop(0, '#8DA3B8'); g.addColorStop(1, '#5D7286'); ctx.fillStyle = g; ctx.fillRect(PX, y0 + 30, PW, 200);
+  text('Welcome to Our Family-Owned Company', CX, y0 + 120, `700 15px ${F}`, WHITE);
+  text('Serving the community with pride and quality', CX, y0 + 142, `500 10px ${F}`, '#E8EEF3');
+  for (let r = 0; r < 16; r++) { const w = PW - 60 - hash(r) * 120; ctx.fillStyle = '#C9CFD6'; ctx.fillRect(PX + 30, y0 + 254 + r * 15, w, 6); }
+  text('Call: (555) 555-0142', PX + 30, y0 + 520, `500 10px ${F}`, '#7A848E', 'left');
+  browser(t, 'yourbusiness.com', null);
+  if (t >= T.popup) {
+    const k = Math.min(1.04, sp(t - T.popup, { freq: 3.2, damp: 0.72 }));
+    ctx.fillStyle = `rgba(20,25,30,${0.45 * Math.min(1, k)})`; ctx.fillRect(PX, PY + 122, PW, PH - 122);
+    ctx.save(); ctx.translate(CX, PY + 420); ctx.scale(k, k);
+    rr(-170, -150, 340, 300, 18); ctx.fillStyle = WHITE; ctx.fill();
+    text('Join our newsletter!', 0, -70, `800 28px ${F}`, INK);
+    text('Get seasonal tips and offers', 0, -32, `500 19px ${F}`, '#5A636D');
+    rr(-130, 0, 260, 46, 10); ctx.strokeStyle = '#C5CBD2'; ctx.lineWidth = 2; ctx.stroke(); text('Email address', -112, 30, `500 18px ${F}`, '#9AA2AA', 'left');
+    rr(-130, 64, 260, 50, 10); ctx.fillStyle = '#5D7286'; ctx.fill(); text('Subscribe', 0, 97, `700 21px ${F}`, WHITE);
+    text('×', 152, -122, `500 20px ${F}`, '#9AA2AA');
+    ctx.restore();
+  }
+  thumb(t, TAPS[1], CX + 118, PY + 316); thumb(t, TAPS[2], CX + 140, PY + 290);
+}
+// his site: loads at once, big words, big Call button
+function nextSite(t) {
+  const t0 = T.next; ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH);
+  const k = (d) => Math.min(1, sp(t - t0 - d, { freq: 3.4, damp: 0.78 }));
+  ctx.fillStyle = SLATE; ctx.fillRect(PX, PY + 122, PW, 290);
+  ctx.save(); ctx.globalAlpha = Math.min(1, k(0.05) * 1.4);
+  text('Garage door', PX + 34, PY + 210, `800 50px ${F}`, WHITE, 'left');
+  text('stuck?', PX + 34, PY + 268, `800 50px ${F}`, C.sun, 'left');
+  text('We can help today.', PX + 34, PY + 330, `600 28px ${F}`, '#DCE4EE', 'left');
+  ctx.restore();
+  const bk = k(0.25), pressed = t >= TAPS[5] - 0.05 && t < TAPS[5] + 0.3 ? 0.94 : 1;
+  ctx.save(); ctx.translate(CX, PY + 500); ctx.scale(bk * pressed, bk * pressed);
+  rr(-180, -52, 360, 104, 52); ctx.fillStyle = ORANGE; ctx.fill(); phoneGlyph(-104, 0, 17, WHITE); text('Call now', 22, 14, `800 40px ${F}`, WHITE);
+  ctx.restore();
+  ctx.save(); ctx.globalAlpha = k(0.4); text('Open now · Garage door repair', CX, PY + 610, `600 21px ${F}`, '#5A636D'); ctx.restore();
+  browser(t, 'nextgaragedoor.com', t < t0 + 0.3 ? seg(t, t0, t0 + 0.3) : null);
+  thumb(t, TAPS[5], CX, PY + 500);
+}
+function calling(t) {
+  const t0 = T.call + 0.75;
+  const g = ctx.createLinearGradient(0, PY, 0, PY + PH); g.addColorStop(0, '#34485E'); g.addColorStop(1, '#151C24'); ctx.fillStyle = g; ctx.fillRect(PX, PY, PW, PH);
+  statusBar(t, true);
+  const conn = t >= 16.9;
+  text('Next garage door co.', CX, PY + 220, `800 36px ${F}`, WHITE);
+  text(conn ? 'Connected · 0:0' + Math.min(9, Math.floor(t - 16.9 + 1)) : 'Calling…', CX, PY + 268, `600 26px ${F}`, conn ? '#9BE3B0' : 'rgba(255,255,255,.7)');
+  const ring = conn ? 0 : (t - t0) % 0.8 / 0.8; if (!conn) { circ(CX, PY + 400, 60 + 60 * ring); ctx.strokeStyle = `rgba(255,255,255,${0.4 * (1 - ring)})`; ctx.lineWidth = 4; ctx.stroke(); }
+  circ(CX, PY + 400, 60); ctx.fillStyle = conn ? GREEN : 'rgba(255,255,255,.18)'; ctx.fill(); phoneGlyph(CX, PY + 400, 20, WHITE);
+  ctx.save(); ctx.translate(CX, PY + 580); circ(0, 0, 48); ctx.fillStyle = RED; ctx.fill(); ctx.rotate(2.36); phoneGlyph(0, 0, 16, WHITE); ctx.restore();
+}
+function screen(t) {
+  ctx.save(); rr(PX, PY, PW, PH, 34); ctx.clip();
+  if (t < T.load) results(t, TAPS[0], 0);
+  else if (t < T.tiny) loading(t, T.load);
+  else if (t < T.back + 0.1) tiny(t);
+  else if (t < T.next) results(t, TAPS[4], 1);
+  else if (t < T.call + 0.75) nextSite(t);
+  else if (t < T.yours) calling(t);
+  else loading(t, T.yours - 1.5);
+  if (t >= T.back - 0.2 && t < T.back + 0.6) thumb(t, TAPS[3], PX + 40, PY + 84);
+  ctx.restore();
+}
+function phone(t) {
+  const tag = 'HER PHONE';
+  ctx.font = `800 30px ${F}`; ctx.letterSpacing = '6px'; const tw = ctx.measureText(tag).width + 56;
+  rr(520 - tw / 2, 450, tw, 56, 28); ctx.fillStyle = SLATE; ctx.fill(); text(tag, 520 + 3, 489, `800 30px ${F}`, C.cream); ctx.letterSpacing = '0px';
+  rr(PX - 20 + 12, PY - 20 + 18, PW + 40, PH + 40, 52); ctx.fillStyle = 'rgba(20,25,35,.35)'; ctx.fill();
+  rr(PX - 20, PY - 20, PW + 40, PH + 40, 52); ctx.fillStyle = '#16191D'; ctx.fill();
+  screen(t);
+}
+function cam(t) { let punch = 0; for (const k of HITS) if (t >= k) punch += 0.022 * Math.exp(-(t - k) * 8); return 1 + punch + 0.004 * Math.sin(t * 0.9); }
+
+function title() {
+  const x = 140, y = 180, w = 800, h = 230;
+  rr(x + 8, y + 10, w, h, 26); ctx.fillStyle = 'rgba(15,20,30,.3)'; ctx.fill();
+  rr(x, y, w, h, 26); ctx.fillStyle = SLATE; ctx.fill();
+  ctx.letterSpacing = '7px'; text('GARAGE DOOR PROS:', x + 50, y + 62, `800 30px ${F}`, C.sun, 'left'); ctx.letterSpacing = '0px';
+  text('She tapped your website.', x + 50, y + 132, `700 52px ${F}`, C.cream, 'left');
+  text('Did it load?', x + 50, y + 198, `700 52px ${F}`, C.coralLite, 'left');
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = c.t0 === 0 ? 1 : Math.min(1.08, sp(t - c.t0, { freq: 3.2, damp: 0.7 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  const lines = c.text.split('\n'); let fsz = 54; ctx.font = `700 ${fsz}px ${F}`;
+  const maxw = Math.max(...lines.map(l => ctx.measureText(l).width));
+  if (maxw > 620) { fsz = Math.floor(54 * 620 / maxw); ctx.font = `700 ${fsz}px ${F}`; }
+  const tw = Math.max(...lines.map(l => ctx.measureText(l).width)), lh = fsz * 1.2, w = tw + 64, h = 50 + lh * lines.length;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(520, 1350 + (lines.length - 1) * lh / 2); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  rr(-w / 2 + 6, -h / 2 + 8, w, h, 22); ctx.fillStyle = 'rgba(15,20,30,.3)'; ctx.fill();
+  rr(-w / 2, -h / 2, w, h, 22); ctx.fillStyle = WHITE; ctx.fill(); ctx.strokeStyle = SLATE; ctx.lineWidth = 3; ctx.stroke();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  lines.forEach((ln, j) => {
+    const by = -((lines.length - 1) * lh) / 2 + j * lh + fsz * 0.35, i = ln.indexOf(c.hi);
+    const pre = i < 0 ? ln : ln.slice(0, i), hi = i < 0 ? '' : c.hi, post = i < 0 ? '' : ln.slice(i + c.hi.length);
+    let x = -ctx.measureText(ln).width / 2;
+    ctx.fillStyle = SLATE; ctx.fillText(pre, x, by); x += ctx.measureText(pre).width;
+    ctx.fillStyle = DCORAL; ctx.fillText(hi, x, by); x += ctx.measureText(hi).width; ctx.fillStyle = SLATE; ctx.fillText(post, x, by);
+  });
+  ctx.restore();
+}
+
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut));
+  ctx.save(); circ(520, 880, 20 + 1700 * k); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780); glow.addColorStop(0, `rgba(240,100,90,${0.3 * k})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => text('You run the business.', 540, 880, '400 66px "Young Serif"', C.cream));
+  rise(T.tag2, () => text('We help it scale.', 540, 968, '400 66px "Young Serif"', C.coralLite));
+  rise(T.serv, () => text('Websites · Ads · AI receptionists', 540, 1100, `600 32px ${F}`, C.coralLite));
+  rise(T.url, () => text('horizonscales.com', 540, 1174, `800 44px ${F}`, C.cream));
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 1.6;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = '#7F93AE'; ctx.fillRect(0, 0, 1080, 1920);
+  if (t < T.shut) {
+    background(t);
+    const z = cam(t); ctx.save(); ctx.translate(520, 880); ctx.scale(z, z); ctx.translate(-520, -880); phone(t); ctx.restore();
+    title(); CAPS.forEach(cp => caption(cp, t));
+  }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', `800 44px ${F}`, `700 32px ${F}`, `600 32px ${F}`, `500 20px ${F}`]);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
