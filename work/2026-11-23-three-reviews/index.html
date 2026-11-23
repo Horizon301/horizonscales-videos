@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Three Reviews — Horizon Scales</title>
+<style>
+  @font-face { font-family: "Young Serif"; src: url(fonts/YoungSerif.woff2) format("woff2"); }
+  @font-face { font-family: "Josefin"; src: url(fonts/JosefinSans-600.woff2) format("woff2"); font-weight: 600; }
+  @font-face { font-family: "Josefin"; src: url(fonts/JosefinSans-400.woff2) format("woff2"); font-weight: 400; }
+  html, body { margin: 0; background: #8FA7AE; overflow: hidden; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { DUR, T, CAPS, HITS, TAPS } from './timeline.js';
+import { seg, ease as E, spring, stageSize, setupCanvas, loadFonts, loadImage, TAU } from './motion.js';
+
+const { W: SW_, H: SH_ } = stageSize();
+const ctx = setupCanvas(document.getElementById('c'), SW_, SH_);
+const SC = SW_ / 1080;
+const MODE = new URLSearchParams(location.search).get('dir');
+const C = { plum: 'rgb(28,2,40)', coral: '#F0645A', coralLite: '#F5A39A', cream: '#F6F0E6', sun: '#FFD27A' };
+// Plain (RUNBOOK v2): HER PHONE in front of her backyard the morning after a storm, a branch across the fence.
+const INK = '#1F2A2E', TEAL = '#1F3D44', WHITE = '#FFFFFF', GREEN = '#2E9A57', RED = '#E2483D', BLUE = '#2B66C9', GREY = '#8A9196', LIGHT = '#EEF2F3', STAR = '#F2A93B', DCORAL = '#D9503F';
+const sp = (x, o) => (x <= 0 ? 0 : spring(x, o));
+const F = '"Josefin"';
+// frame safety: hook block y 180–410 (x 140–940); phone x 300–740, y 540–1220, tag at y 450; countdown badge at x 220, y 640;
+// captions centred at x 520 around y 1350 (≤ 640 wide); nothing right of x 864 below y 920 or under y 1630 (background only).
+
+const rr = (x, y, w, h, r) => { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); };
+const circ = (x, y, r) => { ctx.beginPath(); ctx.arc(x, y, Math.max(0.01, r), 0, TAU); };
+const text = (s, x, y, font, col, align = 'center') => { ctx.font = font; ctx.fillStyle = col; ctx.textAlign = align; ctx.textBaseline = 'alphabetic'; ctx.fillText(s, x, y); };
+const hash = n => { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); };
+
+// ── background: clearing storm sky, a wooden fence with a big branch across a broken section, wet lawn, falling leaves
+function background(t) {
+  const sky = ctx.createLinearGradient(0, 0, 0, 900); sky.addColorStop(0, '#6F8A93'); sky.addColorStop(0.55, '#A9BEC2'); sky.addColorStop(1, '#E9E1CC');
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, 1080, 900);
+  // the sun breaking through
+  const sg = ctx.createRadialGradient(880, 140, 0, 880, 140, 420); sg.addColorStop(0, 'rgba(255,226,150,.65)'); sg.addColorStop(1, 'rgba(255,226,150,0)'); ctx.fillStyle = sg; ctx.fillRect(400, 0, 680, 700);
+  // storm clouds drifting off
+  for (let i = 0; i < 6; i++) { const x = ((hash(i) * 1400 + t * (10 + i * 4)) % 1500) - 220, y = 60 + i * 95;
+    ctx.fillStyle = `rgba(70,88,96,${0.22 - i * 0.025})`; rr(x, y, 260 + hash(i + 7) * 200, 46, 23); ctx.fill(); rr(x + 60, y - 22, 160, 46, 23); ctx.fill(); }
+  // far trees
+  ctx.fillStyle = '#4F6B55'; for (let i = 0; i < 9; i++) { const x = i * 135 - 20; circ(x, 820, 90 + hash(i) * 40); ctx.fill(); }
+  // lawn
+  const lawn = ctx.createLinearGradient(0, 900, 0, 1920); lawn.addColorStop(0, '#5E8A4C'); lawn.addColorStop(1, '#3E6A36'); ctx.fillStyle = lawn; ctx.fillRect(0, 860, 1080, 1060);
+  ctx.fillStyle = 'rgba(255,255,255,.06)'; for (let i = 0; i < 70; i++) { const x = hash(i + 30) * 1080, y = 1250 + hash(i + 90) * 670; ctx.fillRect(x, y, 3, 16); }
+  // puddle catching the sky
+  ctx.save(); ctx.translate(880, 1760); ctx.scale(1, 0.28); circ(0, 0, 210); ctx.fillStyle = 'rgba(190,210,214,.55)'; ctx.fill(); ctx.restore();
+  // fence: pickets with one broken section in the middle
+  const fy = 860, fh = 420;
+  ctx.fillStyle = '#8E6446'; ctx.fillRect(0, fy + 90, 1080, 24); ctx.fillRect(0, fy + 300, 1080, 24);
+  for (let i = 0; i < 16; i++) { const x = i * 72 - 10, broken = i >= 6 && i <= 9;
+    ctx.save(); ctx.translate(x + 30, fy + fh);
+    if (broken) ctx.rotate((i - 7.5) * 0.18);
+    const h = broken ? fh * 0.55 : fh;
+    ctx.fillStyle = i % 2 ? '#B9875F' : '#C39468'; ctx.beginPath(); ctx.moveTo(-30, 0); ctx.lineTo(-30, -h + 20); ctx.lineTo(0, -h); ctx.lineTo(30, -h + 20); ctx.lineTo(30, 0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(60,35,20,.18)'; ctx.fillRect(18, -h + 20, 12, h - 20);
+    ctx.restore(); }
+  // the fallen branch, lying across the broken section
+  ctx.save(); ctx.translate(540, fy + 250); ctx.rotate(-0.16 + 0.004 * Math.sin(t * 1.3));
+  ctx.strokeStyle = '#5A3C28'; ctx.lineCap = 'round';
+  ctx.lineWidth = 64; ctx.beginPath(); ctx.moveTo(-620, 40); ctx.lineTo(620, -30); ctx.stroke();
+  ctx.lineWidth = 26; for (const [x, a, l] of [[-380, -0.9, 200], [-120, 0.8, 170], [160, -1.1, 210], [420, 0.7, 180], [560, -0.6, 150]]) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x + Math.cos(a) * l, Math.sin(a) * l); ctx.stroke(); }
+  for (let i = 0; i < 26; i++) { const x = -560 + i * 46, y = -60 + hash(i + 3) * 120; ctx.fillStyle = i % 3 ? '#4C7A3C' : '#6B9A4A'; ctx.save(); ctx.translate(x, y); ctx.rotate(hash(i) * 3); ctx.beginPath(); ctx.ellipse(0, 0, 34, 16, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+  ctx.restore();
+  // a few leaves still falling
+  for (let i = 0; i < 9; i++) { const ph = (t * 0.16 + hash(i + 50)) % 1, x = hash(i + 60) * 1080 + Math.sin(t * 1.4 + i) * 40, y = -40 + ph * 1960;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(t * 1.8 + i); ctx.fillStyle = i % 2 ? '#7AA052' : '#C9A24A'; ctx.beginPath(); ctx.ellipse(0, 0, 16, 7, 0, 0, TAU); ctx.fill(); ctx.restore(); }
+}
+
+// ── the phone (screen 440 × 680 at PX, PY)
+const PX = 300, PY = 540, PW = 440, PH = 680, CX = PX + PW / 2;
+function statusBar(t, dark) {
+  text('8:14', PX + 40, PY + 44, `600 26px ${F}`, dark ? WHITE : INK, 'left');
+  ctx.fillStyle = dark ? WHITE : INK; for (let i = 0; i < 4; i++) ctx.fillRect(PX + PW - 120 + i * 11, PY + 40 - 6 - i * 5, 7, 6 + i * 5);
+  rr(PX + PW - 66, PY + 22, 36, 20, 5); ctx.strokeStyle = dark ? WHITE : INK; ctx.lineWidth = 2.5; ctx.stroke(); ctx.fillRect(PX + PW - 63, PY + 25, 26, 14);
+}
+function phoneGlyph(x, y, s, col) { ctx.save(); ctx.translate(x, y); ctx.rotate(-0.75);
+  ctx.strokeStyle = col; ctx.lineWidth = s * 0.55; ctx.lineCap = 'round'; ctx.beginPath(); ctx.arc(0, s * 0.9, s * 1.25, Math.PI * 1.22, Math.PI * 1.78); ctx.stroke();
+  ctx.fillStyle = col; for (const sx of [-1, 1]) { ctx.save(); ctx.translate(sx * s * 0.95, s * 0.2); ctx.rotate(sx * 0.6); rr(-s * 0.32, -s * 0.2, s * 0.64, s * 0.75, s * 0.2); ctx.fill(); ctx.restore(); }
+  ctx.restore(); }
+function stars(x, y, n, col, size = 24) { for (let k = 0; k < 5; k++) text('★', x + k * (size + 2), y, `400 ${size}px sans-serif`, k < n ? col : '#D3D8DB', 'left'); }
+// her fingertip: hovers over a point between a and b, taps at tap
+function finger(t) {
+  const pts = [[6.4, CX + 40, PY + 330], [T.hover + 0.2, CX - 40, PY + 250], [T.hoverB - 0.1, CX - 40, PY + 250], [T.hoverB + 0.3, CX - 20, PY + 430],
+    [T.tapC - 0.6, CX - 20, PY + 430], [T.tapC - 0.1, CX, PY + 610], [T.tapC + 0.3, CX, PY + 610]];
+  if (t < pts[0][0] - 0.3 || t > T.tapC + 0.5) return;
+  let x = pts[0][1], y = pts[0][2];
+  for (let i = 1; i < pts.length; i++) if (t >= pts[i - 1][0]) { const k = E.inOutCubic(seg(t, pts[i - 1][0], pts[i][0])); x = pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * k; y = pts[i - 1][2] + (pts[i][2] - pts[i - 1][2]) * k; }
+  const a = seg(t, pts[0][0] - 0.3, pts[0][0]) * (1 - seg(t, T.tapC + 0.2, T.tapC + 0.5));
+  ctx.save(); ctx.globalAlpha = a; circ(x + 10, y + 14, 36); ctx.fillStyle = 'rgba(40,50,55,.28)'; ctx.fill(); ctx.restore();
+  const r = seg(t, T.tapC, T.tapC + 0.35); if (r > 0 && r < 1) { circ(x, y, 20 + 44 * r); ctx.strokeStyle = `rgba(43,102,201,${0.55 * (1 - r)})`; ctx.lineWidth = 4; ctx.stroke(); }
+}
+// the search results: 3 tree services
+function results(t) {
+  ctx.fillStyle = WHITE; ctx.fillRect(PX, PY, PW, PH); statusBar(t, false);
+  rr(PX + 24, PY + 70, PW - 48, 54, 27); ctx.fillStyle = LIGHT; ctx.fill();
+  circ(PX + 56, PY + 95, 10); ctx.strokeStyle = GREY; ctx.lineWidth = 3.5; ctx.stroke(); ctx.beginPath(); ctx.moveTo(PX + 63, PY + 102); ctx.lineTo(PX + 70, PY + 109); ctx.stroke();
+  const q = 'tree removal near me', n = Math.floor(q.length * seg(t, 0.1, 0.85));
+  text(q.slice(0, n) + (t < 0.95 && Math.floor(t * 3) % 2 === 0 ? '|' : ''), PX + 82, PY + 104, `600 23px ${F}`, INK, 'left');
+  const you = seg(t, T.you + 0.35, T.you + 0.75);
+  const items = [
+    { name: 'Tree Service A', n: 0, rev: 'No reviews yet', sub: '', hov: [T.hover, T.hoverB] },
+    { name: 'Tree Service B', n: 4, rev: '4.0  (2)', sub: 'Last review: 2021', hov: [T.hoverB, T.tapC - 0.4] },
+    { name: 'Tree Service C', n: 5, rev: '4.9  (84)', sub: 'Open now', hov: [T.tapC - 0.4, T.tapC + 0.4] },
+  ];
+  items.forEach((it, i) => {
+    const k = Math.min(1.04, sp(t - T.list - i * 0.16, { freq: 3.2, damp: 0.75 })); if (k <= 0.01) return;
+    const y = PY + 152 + i * 176, h = 158, hov = t >= it.hov[0] && t < it.hov[1] && t < T.call;
+    ctx.save(); ctx.globalAlpha = Math.min(1, k * 1.5); ctx.translate((1 - k) * 260, 0);
+    rr(PX + 18, y, PW - 36, h, 18); ctx.fillStyle = hov ? '#E6EEFA' : '#F7F9F9'; ctx.fill();
+    ctx.strokeStyle = (i === 0 && t >= T.you) ? C.coral : hov ? BLUE : '#E0E5E7'; ctx.lineWidth = (i === 0 && t >= T.you) ? 6 : hov ? 4 : 2; ctx.stroke();
+    // name (A flips to "Your business")
+    if (i === 0 && you > 0) {
+      ctx.save(); ctx.globalAlpha *= 1 - you; text(it.name, PX + 40, y + 50 - you * 20, `600 35px ${F}`, BLUE, 'left'); ctx.restore();
+      ctx.save(); ctx.globalAlpha *= you; text('Your business', PX + 40, y + 50 + (1 - you) * 20, `600 35px ${F}`, BLUE, 'left'); ctx.restore();
+    } else text(it.name, PX + 40, y + 50, `600 35px ${F}`, BLUE, 'left');
+    if (it.n === 0) text(it.rev, PX + 40, y + 94, `600 29px ${F}`, '#5E676C', 'left');
+    else { stars(PX + 40, y + 94, it.n, STAR, 26); text(it.rev, PX + 40 + 5 * 28 + 12, y + 93, `600 27px ${F}`, INK, 'left'); }
+    if (it.sub) text(it.sub, PX + 40, y + 136, `600 26px ${F}`, i === 2 ? GREEN : '#7A6A5E', 'left');
+    else text('Tree removal', PX + 40, y + 136, `400 26px ${F}`, '#5E676C', 'left');
+    // hover call-outs
+    if (hov && i < 2) { const p = Math.min(1, sp(t - it.hov[0], { freq: 4, damp: 0.7 }));
+      ctx.save(); ctx.translate(PX + PW - 66, y + 46); ctx.scale(p, p); circ(0, 0, 26); ctx.fillStyle = RED; ctx.fill();
+      ctx.strokeStyle = WHITE; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.beginPath(); ctx.moveTo(-9, -9); ctx.lineTo(9, 9); ctx.moveTo(9, -9); ctx.lineTo(-9, 9); ctx.stroke(); ctx.restore(); }
+    if (i === 2) { rr(PX + PW - 140, y + 98, 104, 44, 22); ctx.fillStyle = GREEN; ctx.fill(); phoneGlyph(PX + PW - 112, y + 120, 9, WHITE); text('Call', PX + PW - 74, y + 129, `600 24px ${F}`, WHITE); }
+    ctx.restore();
+  });
+}
+function calling(t) {
+  const g = ctx.createLinearGradient(0, PY, 0, PY + PH); g.addColorStop(0, '#2C4A50'); g.addColorStop(1, '#13201F'); ctx.fillStyle = g; ctx.fillRect(PX, PY, PW, PH);
+  statusBar(t, true);
+  const conn = t >= T.conn;
+  text('Tree Service C', CX, PY + 220, `600 40px ${F}`, WHITE);
+  text(conn ? 'Connected · 0:0' + Math.min(9, Math.floor(t - T.conn + 1)) : 'Calling…', CX, PY + 270, `600 27px ${F}`, conn ? '#9BE3B0' : 'rgba(255,255,255,.72)');
+  const ring = conn ? 0 : ((t - T.call) % 0.8) / 0.8; if (!conn) { circ(CX, PY + 400, 60 + 60 * ring); ctx.strokeStyle = `rgba(255,255,255,${0.4 * (1 - ring)})`; ctx.lineWidth = 4; ctx.stroke(); }
+  circ(CX, PY + 400, 60); ctx.fillStyle = conn ? GREEN : 'rgba(255,255,255,.18)'; ctx.fill(); phoneGlyph(CX, PY + 400, 20, WHITE);
+  ctx.save(); ctx.translate(CX, PY + 580); circ(0, 0, 48); ctx.fillStyle = RED; ctx.fill(); ctx.rotate(2.36); phoneGlyph(0, 0, 16, WHITE); ctx.restore();
+}
+function screen(t) {
+  ctx.save(); rr(PX, PY, PW, PH, 34); ctx.clip();
+  if (t >= T.call && t < T.you) calling(t); else results(t);
+  if (t < T.call) finger(t);
+  ctx.restore();
+}
+function phone(t, tagA = 1) {
+  const tag = 'HER PHONE'; ctx.save(); ctx.globalAlpha = tagA;
+  ctx.font = `600 30px ${F}`; ctx.letterSpacing = '6px'; const tw = ctx.measureText(tag).width + 56;
+  rr(520 - tw / 2, 450, tw, 56, 28); ctx.fillStyle = TEAL; ctx.fill(); text(tag, 520 + 3, 489, `600 30px ${F}`, C.cream); ctx.letterSpacing = '0px'; ctx.restore();
+  rr(PX - 20 + 12, PY - 20 + 18, PW + 40, PH + 40, 52); ctx.fillStyle = 'rgba(15,25,25,.35)'; ctx.fill();
+  rr(PX - 20, PY - 20, PW + 40, PH + 40, 52); ctx.fillStyle = '#141819'; ctx.fill();
+  screen(t);
+}
+// countdown badge (left of the phone, inside the safe zone)
+function countdown(t) {
+  if (t < T.count[0] - 0.1 || t >= T.hover) return;
+  const i = T.count.filter(c => t >= c).length; if (i === 0) return;
+  const t0 = T.count[i - 1], k = Math.min(1.1, sp(t - t0, { freq: 4, damp: 0.6 })), out = 1 - seg(t, T.hover - 0.2, T.hover);
+  ctx.save(); ctx.globalAlpha = out; ctx.translate(222, 650); ctx.scale(k, k);
+  circ(4, 8, 74); ctx.fillStyle = 'rgba(10,20,20,.3)'; ctx.fill();
+  circ(0, 0, 74); ctx.fillStyle = C.sun; ctx.fill(); ctx.strokeStyle = TEAL; ctx.lineWidth = 6; ctx.stroke();
+  const p = seg(t, t0, t0 + 1); ctx.beginPath(); ctx.arc(0, 0, 62, -Math.PI / 2, -Math.PI / 2 + TAU * (1 - p)); ctx.strokeStyle = C.coral; ctx.lineWidth = 8; ctx.stroke();
+  text(String(4 - i), 0, 30, `600 86px ${F}`, TEAL);
+  ctx.restore();
+}
+function cam(t) {
+  let punch = 0; for (const k of HITS) if (t >= k) punch += 0.022 * Math.exp(-(t - k) * 8);
+  const push = E.inOutCubic(seg(t, T.same, T.same + 0.8)) * (1 - E.inOutCubic(seg(t, T.ask, T.ask + 0.6)));
+  return { z: 1 + punch + 0.004 * Math.sin(t * 0.9) + 0.18 * push, fy: 880 + (PY + 230 - 880) * push, push };
+}
+
+function title() {
+  const x = 140, y = 180, w = 800, h = 230;
+  rr(x + 8, y + 10, w, h, 26); ctx.fillStyle = 'rgba(10,25,25,.3)'; ctx.fill();
+  rr(x, y, w, h, 26); ctx.fillStyle = TEAL; ctx.fill();
+  ctx.letterSpacing = '7px'; text('TREE PROS:', x + 50, y + 66, `600 32px ${F}`, C.sun, 'left'); ctx.letterSpacing = '0px';
+  text('3 tree services came up.', x + 50, y + 136, `600 52px ${F}`, C.cream, 'left');
+  text('Which one would you call?', x + 50, y + 202, `600 52px ${F}`, C.coralLite, 'left');
+}
+function caption(c, t) {
+  if (t < c.t0 || t >= c.t1) return;
+  const k = c.t0 === 0 ? 1 : Math.min(1.08, sp(t - c.t0, { freq: 3.2, damp: 0.7 })), out = 1 - seg(t, c.t1 - 0.1, c.t1);
+  const lines = c.text.split('\n'); let fsz = 56; ctx.font = `600 ${fsz}px ${F}`;
+  const maxw = Math.max(...lines.map(l => ctx.measureText(l).width));
+  if (maxw > 620) { fsz = Math.floor(56 * 620 / maxw); ctx.font = `600 ${fsz}px ${F}`; }
+  const tw = Math.max(...lines.map(l => ctx.measureText(l).width)), lh = fsz * 1.2, w = tw + 64, h = 46 + lh * lines.length;
+  ctx.save(); ctx.globalAlpha = out * Math.min(1, k * 2); ctx.translate(520, 1350 + (lines.length - 1) * lh / 2); ctx.scale(0.9 + 0.1 * k, 0.9 + 0.1 * k);
+  rr(-w / 2 + 6, -h / 2 + 8, w, h, 22); ctx.fillStyle = 'rgba(10,25,25,.32)'; ctx.fill();
+  rr(-w / 2, -h / 2, w, h, 22); ctx.fillStyle = C.cream; ctx.fill(); ctx.strokeStyle = TEAL; ctx.lineWidth = 4; ctx.stroke();
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  lines.forEach((ln, j) => {
+    const by = -((lines.length - 1) * lh) / 2 + j * lh + fsz * 0.36, i = ln.indexOf(c.hi);
+    const pre = i < 0 ? ln : ln.slice(0, i), hi = i < 0 ? '' : c.hi, post = i < 0 ? '' : ln.slice(i + c.hi.length);
+    let x = -ctx.measureText(ln).width / 2;
+    ctx.fillStyle = TEAL; ctx.fillText(pre, x, by); x += ctx.measureText(pre).width;
+    ctx.fillStyle = DCORAL; ctx.fillText(hi, x, by); x += ctx.measureText(hi).width; ctx.fillStyle = TEAL; ctx.fillText(post, x, by);
+  });
+  ctx.restore();
+}
+
+let LOGO;
+function endCard(t) {
+  const k = E.inOutCubic(seg(t, T.end, T.shut));
+  ctx.save(); circ(520, 880, 20 + 1700 * k); ctx.clip();
+  ctx.fillStyle = C.plum; ctx.fillRect(0, 0, 1080, 1920);
+  const glow = ctx.createRadialGradient(540, 640, 0, 540, 640, 780); glow.addColorStop(0, `rgba(240,100,90,${0.3 * k})`); glow.addColorStop(1, 'rgba(240,100,90,0)'); ctx.fillStyle = glow; ctx.fillRect(0, 0, 1080, 1920);
+  const z = 1 + 0.006 * Math.max(0, t - T.shut); ctx.translate(540, 860); ctx.scale(z, z); ctx.translate(-540, -860);
+  const rise = (t0, fn) => { const q = Math.min(1, sp(t - t0, { freq: 2.6, damp: 0.8 })); if (q <= 0) return; ctx.save(); ctx.globalAlpha = Math.min(1, q * 1.5); ctx.translate(0, (1 - q) * 30); fn(); ctx.restore(); };
+  rise(T.logo, () => { const w = 700, h = w * LOGO.height / LOGO.width; ctx.save(); ctx.globalCompositeOperation = 'lighten'; ctx.drawImage(LOGO, 540 - w / 2, 560 - h / 2, w, h); ctx.restore(); });
+  rise(T.tag1, () => text('You run the business.', 540, 880, '400 66px "Young Serif"', C.cream));
+  rise(T.tag2, () => text('We help it scale.', 540, 968, '400 66px "Young Serif"', C.coralLite));
+  rise(T.serv, () => text('Websites · Ads · AI receptionists', 540, 1100, `600 34px ${F}`, C.coralLite));
+  rise(T.url, () => text('horizonscales.com', 540, 1174, `600 46px ${F}`, C.cream));
+  ctx.restore();
+}
+
+window.READY = false; window.DUR = DUR;
+window.render = t => {
+  if (MODE === 'thumb') t = 2.2;
+  t = Math.round(t * 1e5) / 1e5;
+  ctx.save(); ctx.scale(SC, SC);
+  ctx.fillStyle = '#8FA7AE'; ctx.fillRect(0, 0, 1080, 1920);
+  if (t < T.shut) {
+    background(t);
+    const c = cam(t); ctx.save(); ctx.translate(520, c.fy); ctx.scale(c.z, c.z); ctx.translate(-520, -c.fy); phone(t, 1 - c.push); ctx.restore();
+    countdown(t); title(); CAPS.forEach(cp => caption(cp, t));
+  }
+  if (t >= T.end) endCard(t);
+  ctx.restore();
+};
+await loadFonts(['400 66px "Young Serif"', `600 44px ${F}`, `400 22px ${F}`]);
+LOGO = await loadImage('assets/logo-long.png');
+window.render(0); window.READY = true;
+</script>
+</body>
+</html>
