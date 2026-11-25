@@ -45,14 +45,29 @@ Never a small detail as the whole video (a footer year, a listing photo, the len
 
 ## 3. Write it plain
 
-- **The 3-second check:** anyone who sees a single frame with the sound off can say what's happening. If a frame needs the one before it, simplify.
-- **Show the real thing:** the phone, the website, the search result, the person. No wrappers (karaoke, crayons, posters, game shows). A new look = new colours, type and music, never a new metaphor.
-- **One idea, one small story:** a beginning, a turn and a payoff. No "problem, fix, problem, fix." No "three leaks" lists.
-- **At most 8 captions,** each up at least 2.4 s, plain words, at most 2 lines of 3–5 words.
-- **Hook on frame 0:** a direct question to the trade owner, readable at once ("Painters: who answers when you're up the ladder?"). Write 2–3 options, score them with `python3 -I kit/skills/instagram-agent/skills/ig-reel/hookscore.py --hook "<hook>"` (or by hand with `ig-reel/hooks.json` if it can't run), and pick the **clearest** one. Never pick a vaguer hook because it scores higher. Put the scores in `brief.md`.
-- **The buddy test:** finish "a painter would tell his buddy this video is about ___". If the answer is "a marketing agency" or "why you need an AI receptionist", start over.
+**Why this section was rewritten (Nov 24, Kai: "the content is still really bad ... the videos don't make much sense or is not relevant ... the music is really choppy").** After the Nov 18 rewrite, #22–#28 all became the same video: one small phone in the middle of a still background, the story told in tiny phone-screen text, "HER PHONE / YOUR PHONE" labels swapping sides, a 3-line hook panel, and nothing moving in the first second. TikTok viewers watched 1–2 seconds of them (4–10%). The videos that held people (#15, #16, #18) had a person or a game filling the frame. The model for all the rules below is `kit/examples/model-847pm/` ("8:47 PM"): copy its size, pacing and music approach, never its look or story.
+
+**The first second (most viewers decide in under 2 seconds):**
+- Frame 0 shows **the problem itself, big**: a person with a face and the broken thing (leaking heater, dead furnace, branch on the fence), or the game board. Never a phone screen that says "Calling…".
+- **Something moves in the first half second** (camera push, a drip, a blinking light, a person turning).
+- **Hook: 2 lines, at most 9 words in total, 64 px or bigger.** Line 1 names the trade and the moment, line 2 is the question ("Plumbers: it's 8:47 PM." / "Who answers your phone?"). No third line, no small label line.
+
+**The picture:**
+- **People, not screens.** Every video has at least one drawn person with a face and feelings (worried, annoyed, relieved) who is on screen for most of it. A phone screen may appear as a big side prop that shows one state at a time.
+- **Fill the frame.** The main subject (person + prop) is at least 600 px tall and the scene fills x 60–1020, y 420–1240. If the contact sheet shows a small object in an empty frame, zoom in.
+- **Any words inside the scene (a phone screen, a sign) are 34 px or bigger and at most 6 words per state.** If it needs more words, it's the caption's job.
+- **One point of view, told in the third person:** "she" (the homeowner) and "he"/"the plumber". No HER PHONE / YOUR PHONE tags, no "Your business" as a contact name, no switching sides mid-video. The owner works out it's about him; the final question says "you".
+- **A different picture at least every 2.5 seconds** (new pose, new prop state, new place). Two or three places per video (her house at night, his shop in the morning).
+
+**The story:**
+- **One idea, one small story:** a problem, a turn, a payoff, then one question. No "problem, fix, problem, fix", no lists.
+- **15–21 seconds** including a 3-second end card. **At most 8 captions,** each 1.8–2.6 s, at most 6 words, 56 px or bigger, one phrase highlighted.
+- **The 3-second check:** anyone who sees a single frame with the sound off can say what's happening.
+- **The relevance check:** the story is one a trade owner has lived or feared this month (a missed call, a job lost to the next guy, an empty week). Finish "a painter would tell his buddy this video is about ___"; if the answer is "a marketing agency", "a phone app" or a detail of a website, start over.
+- No wrappers (karaoke, crayons, posters, game shows). A new look = new colours, type, place and music, never a new metaphor.
+- **Hook score:** write 2–3 hooks, score them with `python3 -I kit/skills/instagram-agent/skills/ig-reel/hookscore.py --hook "<hook>"` (or by hand with `ig-reel/hooks.json`), pick the **clearest**; scores go in `brief.md`.
 - **Services only on the end card.** The video never explains what Horizon Scales sells.
-- Skills to use when they help (not a checklist): `viral-hook-creator` for hooks; `marketing-skills:social` (read its `references/short-form-video.md`) for the short-form rules and the "no AI tells" list; `social-post-writer` for captions; Kai's animation skills (`animation-skills:*`) for looks; `kit/skills/` folders (see `kit/skills/SOURCES.md`): `ig-caption`, `ig-human`. Never `ig-dm`, `ig-comment`, `ig-reply` or anything that contacts other accounts. **Kai's rules win over any skill.**
+- Skills to use when they help (not a checklist): `viral-hook-creator`, `marketing-skills:social` (its `references/short-form-video.md`), `social-post-writer`, Kai's animation skills (`animation-skills:*`, good for people and props), `kit/skills/` (`ig-caption`, `ig-human`; see `kit/skills/SOURCES.md`). Never `ig-dm`, `ig-comment`, `ig-reply` or anything that contacts other accounts. **Kai's rules win over any skill.**
 
 ## 4. Never break these
 
@@ -67,20 +82,20 @@ Never a small detail as the whole video (a footer year, a listing photo, the len
 
 - **Brand:** plum `rgb(28,2,40)`, coral `#F0645A`, light coral `#F5A39A`, cream `#F6F0E6`, sun yellow `#FFD27A`. Logo files in `kit/assets/`. Every video ends on the **plum end card**: logo, "You run the business." (cream), "We help it scale." (light coral), "Websites · Ads · AI receptionists", "horizonscales.com".
 - Change the colours, type and music from night to night; keep the layout simple. No fat, heavy bold text. Something moves every 1–2 s (punch in on cuts). Length 15–30 s.
-- **Music:** real sampled instruments via `python3 ../../kit/sound/sf_render.py music.json audio/band.wav`, a band not used in the last 7 videos, mixed in `score.mjs`. Hits on card changes come from the band (drum fill, stab), not synth beeps. Nothing "overdramatic cinematic". −14 LUFS, true peak ≤ −1 dBTP. Real-world sound effects only where the picture shows them (a ring, a tap), at most 3 kinds. If `kit/sfx-library/` has audio files, add effects with `kit/skills/real-sfx/` (its `SKILL.md`); if that pass fails its checks, post the plain build.
+- **Music: one steady groove, start to finish (Kai, Nov 24: "the music is really choppy").** Build it like `kit/examples/model-847pm/music.py`: a loop that plays kick/rim, hats and bass on **every beat from 0 s until the end card's last chord**, with a chord instrument every two beats. Only the chord changes with the scene. **The band never stops, drops out or thins to one instrument** for a story moment; a scene change gets one extra accent (a crash and one bright note) on top of the groove. One short melody phrase at the start, one at the turn, one on the end card. 92–108 BPM, band gain 0.7. Real sampled instruments via `python3 ../../kit/sound/sf_render.py music.json audio/band.wav`; change the instruments from night to night, not the approach. Nothing "overdramatic cinematic". −14 LUFS, true peak ≤ −1 dBTP. Real-world sound effects only where the picture shows them, at most 3 kinds, quieter than the band (bus gain ≤ 0.25). If `kit/sfx-library/` has audio files, add effects with `kit/skills/real-sfx/`; if that pass fails its checks, post the plain build.
 
 **Frame safety (1080 × 1920):** hook at the top (y 190–380); captions just below the middle (y 1250–1440); everything inside the safe zone (x 140–940, y 290–1540); nothing in the right strip from the middle down (x > 864, y > 920) or the bottom strip (y > 1630); a dark stroke on text over busy backgrounds.
 
 ## 6. Make it, check it
 
-Work in `work/YYYY-MM-DD-<slug>/` (copy `kit/build.sh`, `kit/motion.js`, `kit/fonts/`, `kit/assets/`; make `audio/ out/ qa/`). Start from the closest reference: `work/2026-11-18-next-plumber/` (plain story), `work/2026-11-13-find-the-painter/` (plain game), `work/2026-11-12-worst-time/` (trade-life). Setup once: `cd kit/msr/scripts && npm install --no-audit --no-fund --loglevel=error && cd -`. Don't run `playwright install`.
+Work in `work/YYYY-MM-DD-<slug>/` (copy `kit/build.sh`, `kit/motion.js`, `kit/fonts/`, `kit/assets/`; make `audio/ out/ qa/`). Start from `kit/examples/model-847pm/` (people, big picture, 20.6 s, steady groove; copy its files into the work folder, then change the story, place, colours, type and band). Older references for a game or a trade-life moment: `work/2026-11-13-find-the-painter/`, `work/2026-11-12-worst-time/`. Don't start from #22–#28. Setup once: `cd kit/msr/scripts && npm install --no-audit --no-fund --loglevel=error && cd -`. Don't run `playwright install`.
 
 - Stills: `node ../../kit/msr/scripts/render.mjs . --size 1080x1920 --still 0,1.5,3,... --sheet --out qa/s1`
 - Full build: `sh build.sh` → must end with **"All technical checks passed."**
 - Cover: `node ../../kit/msr/scripts/render.mjs . --size 1080x1920 --directions thumb --at 0 --out qa/thumb`, then `ffmpeg -y -v error -i qa/thumb/thumb_t0.00.png -q:v 2 out/cover.jpg`
 - Pitfalls: fill the background every frame; round `t` at the top of `render`; keep something light on the plum end card (black-frame check); keep times and lengths separate in `timeline.js`; comments only at line ends.
 
-**Gates, all must pass before scheduling:** (1) `sh build.sh` passes; (2) a contact sheet with a still every 2 s: every word readable and spelled right, nothing cut off; (3) the zone overlay on 6–10 frames (Pillow): nothing in the avoid strips; (4) the 3-second check and section 4 re-read against the final script. If a gate still fails after two fixes, don't schedule; say why in `log.md` and the morning message.
+**Gates, all must pass before scheduling:** (0) on the contact sheet: a person with a face in frame 0, the subject fills the frame, no phone-only video, hook is 2 lines; (1) `sh build.sh` passes; (2) a contact sheet with a still every 2 s: every word readable and spelled right, nothing cut off; (3) the zone overlay on 6–10 frames (Pillow): nothing in the avoid strips; (4) the 3-second check and section 4 re-read against the final script. If a gate still fails after two fixes, don't schedule; say why in `log.md` and the morning message.
 
 ## 7. Save, schedule, report
 
