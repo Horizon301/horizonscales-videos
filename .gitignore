@@ -4,3 +4,8 @@ work/*/out/
 work/*/qa/
 kit/skills/real-sfx/library_index.json
 kit/skills/real-sfx/taste.json
+
+# never commit Kai's voice clip or raw voice takes (public repo)
+*.flac
+work/*/audio/vo/
+/voice/
